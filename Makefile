@@ -1,4 +1,4 @@
 tests:
 	nosetests
 dev_test:
-	notify 
+	./notify lesion
