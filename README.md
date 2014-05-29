@@ -1,6 +1,6 @@
 Cogrehab poject python module
 =============================
 
-![Coverage Status](https://img.shields.io/coveralls/armaneshaghi/cogrehab.svg)](https://coveralls.io/r/armaneshaghi/cogrehab)
+[![Coverage Status](https://coveralls.io/repos/armaneshaghi/cogrehab/badge.png)](https://coveralls.io/r/armaneshaghi/cogrehab)
 
 
