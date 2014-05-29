@@ -2,7 +2,7 @@
 Arman Eshaghi, May 2014, MSRC
 Tehran, Iran 
 License: Creative Commons 3.0 
-Notes to my future self:
+
 This modules fills hypointense lesions on 
 T1-weighted images and fills them with median
 intensity of normal appearing white matter
@@ -38,7 +38,7 @@ lm = lesion map
 
 class FillLesionInputSpec(BaseInterfaceInputSpec):
     T1 = File(exists = True, desc = 't1 volume which is \
-            which is already bias field corrected', mandatory = True)
+            already bias field corrected', mandatory = True)
     lesion_map = File(exists = True, desc = 'lesion mask of \
             flair or T2 scans', mandatory = True)
     wmp_map = File(exists = True, desc = 'white matter probability map', 
@@ -58,7 +58,7 @@ class LesionFill(BaseInterface):
         wmp_fname = self.inputs.wmp_map
         #getting image and data via nibabel
         t1_img = nb.load(t1_fname)
-        lm_img = nb.load(lesion_fname)
+        lm_img = nb.load(lm_fname)
         wm_img = nb.load(wmp_fname)
         #converting to matrix 
         t1_mx = t1_img.get_data()
@@ -71,7 +71,7 @@ class LesionFill(BaseInterface):
         wm_bn[wm_mx <= 0.4] = 0
         #making sure wm lesion map is in fact binary
         #(only 0 and 1)
-        lm_unique_arr = numpy.unique(lm_mx)
+        lm_unique_arr = np.unique(lm_mx)
         for i in lm_unique_arr:
             if int(i) != 0 | int(i) !=1:
                 print "lesion map is not binary please recheck"
@@ -83,20 +83,21 @@ class LesionFill(BaseInterface):
         nawm_bn =  wm_bn - lm_mx
         
         #extracting median intenstiy of nawm
-        median_nawm = numpy.median(t1_mx[nawm_bn == 1])
+        median_nawm = np.median(t1_mx[nawm_bn == 1])
         #fill lesions 
         lesion_fill = t1_mx[:]
         lesion_fill[lm_mx == 1] = median_nawm
         
         #merging filled lesions with nawm
-        img = nibabel.Nifti1Image(lesion_fill, t1_img.get_affine(), t1_img.get_header())
+        img = nb.Nifti1Image(lesion_fill, t1_img.get_affine(),
+                t1_img.get_header())
         _, base, _ = split_filename(t1_fname)
         nb.save(img, base + '_filled.nii.gz')
         return runtime
 
-        def _list_outputs(self):
-            outputs = self._outputs().get()
-            fname = self.inputs.t1_fname
-            _, base, _ = split_filename(fname)
-            outputs["filled_t1"] = os.path.abspath(base, '_filled.nii.gz')
-            return outputs
+    def _list_outputs(self):
+        outputs = self._outputs().get()
+        fname = self.inputs.T1
+        _, base, _ = split_filename(fname)
+        outputs["filled_t1"] = os.path.abspath(base + '_filled.nii.gz')
+        return outputs

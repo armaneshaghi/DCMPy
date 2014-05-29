@@ -1,4 +1,6 @@
 tests:
 	nosetests
-dev_test:
+dev_lesion:
 	./notify lesion
+dev_test:
+	./notify test
