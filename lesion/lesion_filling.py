@@ -92,12 +92,21 @@ class LesionFill(BaseInterface):
         img = nb.Nifti1Image(lesion_fill, t1_img.get_affine(),
                 t1_img.get_header())
         _, base, _ = split_filename(t1_fname)
-        nb.save(img, base + '_filled.nii.gz')
+ 
+        path_list = t1_fname.split('/')[0:-1]
+        path = '/'
+        for i in path_list:
+           path = os.path.join(path, i)
+        nb.save(img, os.path.join(path, base + '_filled.nii.gz'))
         return runtime
 
     def _list_outputs(self):
-        outputs = self._outputs().get()
-        fname = self.inputs.T1
-        _, base, _ = split_filename(fname)
-        outputs["filled_t1"] = os.path.abspath(base + '_filled.nii.gz')
+        outputs = self.output_spec().get()
+        t1_fname = self.inputs.T1
+        path_list = t1_fname.split('/')[0:-1] 
+        path = '/'
+        for i in path_list:
+            path = os.path.join(path, i)
+        _, base, _ = split_filename(t1_fname)
+        outputs["filled_t1"] = os.path.join(path, base + '_filled.nii.gz')
         return outputs
