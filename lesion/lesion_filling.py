@@ -1,14 +1,13 @@
 """
 Arman Eshaghi, May 2014, MSRC
-Tehran, Iran 
 License: Creative Commons 3.0 
 
 This modules fills hypointense lesions on 
 T1-weighted images and fills them with median
 intensity of normal appearing white matter
 
-Before initiating the functions, lesion maps should 
-be coregistered with T1 images. 
+Note: before initiating the functions, lesion maps should 
+be coregistered with T1 images, using T2, FLAIR, etc.  
 
 """
 
@@ -45,8 +44,8 @@ class FillLesionInputSpec(BaseInterfaceInputSpec):
             mandatory = True)
 
 class FillLesionOutputSpec(TraitedSpec):
-    filled_t1 = File(exists = True, desc = 'lesion \
-            filled t1 volume')
+    filled_t1 = File(exists = True, 
+            desc = 'lesion filled t1 volume')
 
 class LesionFill(BaseInterface):
     input_spec = FillLesionInputSpec 
@@ -64,7 +63,7 @@ class LesionFill(BaseInterface):
         t1_mx = t1_img.get_data()
         lm_mx = lm_img.get_data()
         wm_mx = wm_img.get_data()
-        #creating a binary wm map
+        #creating a binary sum map
         wm_bn = wm_mx[:]
         #binarising at a threshold of 0.4 
         wm_bn[wm_mx > 0.4] = 1
@@ -78,7 +77,7 @@ class LesionFill(BaseInterface):
                 break
         #nawm is the difference between wm probability
         #and lesion map (remember lesion map and wm 
-        #probability map are in the same space
+        #probability ap are in the same space
         #first making a binary 
         nawm_bn =  wm_bn - lm_mx
         
