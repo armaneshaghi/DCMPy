@@ -34,9 +34,10 @@ class IOcogpyInputSpec(BaseInterfaceInputSpec):
         
 class IOcogpyOutputSpec(TraitedSpec):
 
-    outputs = traits.List(desc = 'outpurs of list of strings')
+    outputs = traits.List(desc = 'outputs of list of strings')
 
 class IOcogpy(BaseInterface):
+
     input_spec = IOcogpyInputSpec
     output_spec = IOcogpyOutputSpec
 
@@ -46,13 +47,16 @@ class IOcogpy(BaseInterface):
         self._modalities = modalities
         path_template = self.inputs.template
         #tp1_gA_P22 is an example of this
-        tp, group, id = self.subject_id.split('_')
+        subject_id = self.inputs.subject_id
+        tp, group, id = subject_id.split('_') 
+        
         for modality in modalities:
             
             path = path_template %(tp, group, modality, id,
                 modality, tp, id)
             path = os.path.join(base_directory, path)
             self.outputs.modality = path
+
     def _list_outputs(self):
         outputs = self.output_spec().get()
         for modality in self._modalities():
