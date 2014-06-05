@@ -40,7 +40,7 @@ class FillLesionInputSpec(BaseInterfaceInputSpec):
             already bias field corrected', mandatory = True)
     lesion_map = File(exists = True, desc = 'lesion mask of \
             flair or T2 scans', mandatory = True)
-    wmp_map = File(exists = True, desc = 'white matter probability map', 
+    posteriors = File(exists = True, desc = 'posteriors coming from ANTs Atropos', 
             mandatory = True)
 
 class FillLesionOutputSpec(TraitedSpec):
@@ -54,7 +54,8 @@ class LesionFill(BaseInterface):
     def _run_interface(self, runtime):
         t1_fname = self.inputs.T1
         lm_fname = self.inputs.lesion_map
-        wmp_fname = self.inputs.wmp_map
+        
+        wmp_fname = self.inputs.posteriors[2]
         #getting image and data via nibabel
         t1_img = nb.load(t1_fname)
         lm_img = nb.load(lm_fname)

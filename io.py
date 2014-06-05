@@ -75,7 +75,8 @@ class IOcogpyInputSpec(DynamicTraitedSpec, BaseInterfaceInputSpec):
     template_args = traits.Dict(key_trait=traits.Str,
                                 value_trait=traits.List(traits.List),
                                 desc='Information to plug into template')
-
+    raise_on_empty = traits.Bool(True, usedefault=True, 
+            desc='Generate exception if list is empty for a given field')
 class IOcogpy(IOBase):
 
     input_spec = IOcogpyInputSpec
