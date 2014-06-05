@@ -40,7 +40,7 @@ class FillLesionInputSpec(BaseInterfaceInputSpec):
             already bias field corrected', mandatory = True)
     lesion_map = File(exists = True, desc = 'lesion mask of \
             flair or T2 scans', mandatory = True)
-    posteriors = File(exists = True, desc = 'posteriors coming from ANTs Atropos', 
+    posteriors = traits.List(desc = 'posteriors coming from ANTs Atropos', 
             mandatory = True)
 
 class FillLesionOutputSpec(TraitedSpec):
