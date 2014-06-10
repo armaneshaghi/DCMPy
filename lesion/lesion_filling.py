@@ -40,7 +40,7 @@ class FillLesionInputSpec(BaseInterfaceInputSpec):
             already bias field corrected', mandatory = True)
     lesion_map = File(exists = True, desc = 'lesion mask of \
             flair or T2 scans', mandatory = True)
-    posteriors = traits.List(desc = 'posteriors coming from ANTs Atropos', 
+    wmp_map = File(exists = True, desc = 'white matter probability map', 
             mandatory = True)
 
 class FillLesionOutputSpec(TraitedSpec):
@@ -54,8 +54,7 @@ class LesionFill(BaseInterface):
     def _run_interface(self, runtime):
         t1_fname = self.inputs.T1
         lm_fname = self.inputs.lesion_map
-        
-        wmp_fname = self.inputs.posteriors[2]
+        wmp_fname = self.inputs.wmp_map
         #getting image and data via nibabel
         t1_img = nb.load(t1_fname)
         lm_img = nb.load(lm_fname)
@@ -110,3 +109,38 @@ class LesionFill(BaseInterface):
         _, base, _ = split_filename(t1_fname)
         outputs["filled_t1"] = os.path.join(path, base + '_filled.nii.gz')
         return outputs
+
+class PosteriorSelectorInputSpec(BaseInterfaceInputSpec):
+
+    posteriors = traits.List(madatory = True, 
+            desc = 'posterior output from ants atroposa')
+    select = traits.Str(mandatory = True, 
+            desc = 'wm, gm or csf')
+
+class PosteriorSelectorOutputSpec(TraitedSpec):
+    file_path = File(exists = True, desc = 'selected requested file')
+
+class PosteriorSelector(BaseInterface): 
+    output_spec = PosteriorSelectorOutputSpec
+    input_spec = PosteriorSelectorInputSpec
+
+    def _gen_outfilename(self):
+        input_list = self.inputs.posteriors
+        option = self.inputs.select
+        if option == 'csf':
+            file_path = input_list[0]
+        if option == 'gm':
+            file_path = input_list[1]
+        if option == 'wm':
+            file_path = input_list[2]
+        return file_path
+
+    def _run_interface(self, runtime):
+        
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['file_path'] = self._gen_outfilename()
+        return outputs
+
