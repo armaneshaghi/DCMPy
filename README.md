@@ -1,4 +1,4 @@
-Londitudinal surface based DCM module
+Longitudinal surface based DCM tools
 =====================================
 
 [![Coverage Status](https://coveralls.io/repos/armaneshaghi/cogrehab/badge.png)](https://coveralls.io/r/armaneshaghi/cogrehab)
