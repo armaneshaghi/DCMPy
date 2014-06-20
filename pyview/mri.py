@@ -37,6 +37,10 @@ class image(object):
         return self
 
     def surfaceMask(self): 
+        volume = self.volume_file
+        volImg = nb.load(volume)
+        volArr = volImg.get_data()
+        newVol = np.zeros(volArr.shape)
         coords, faces = nb.freesurfer.read_geometry(surface_file)
         for coordinates in coords.shape[0]:
             x = coordinates[0]
