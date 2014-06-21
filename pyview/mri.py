@@ -3,18 +3,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 import nibabel as nb
+import subprocess
+import os
 
-
-class image(object):
+class FS(object):
  
-    def __init__(self, path, slice_number=170,volume_file, surface_file):
+    def __init__(self, volume_file, surface_file, slice_number=170):
+        self.volume_file = volume_file
+        self.surface_file = surface_file
 
-        self.path = path
-        self.surface =  surface_file
-        return self
-
-    def volShow(self):
- 
+    def volShow(self): 
+        path = self.volume_file
         img = nb.load(path)
         img_data = img.get_data()
         img_shape = img_data.shape
@@ -38,13 +37,49 @@ class image(object):
 
     def surfaceMask(self): 
         volume = self.volume_file
+        surface_file = self.surface_file
         volImg = nb.load(volume)
+        #RAS to voxel affine transformation
+        ras2vox = np.zeros((4,4))
+        #using FS mri_info from shell
+        FSHome = os.environ['FREESURFER_HOME']
+        response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
+                                            "--ras2vox", volume],
+                                            stderr=subprocess.STDOUT, 
+                                            shell=False)
+        response = response.split()
+        for i in range(0, 4):
+            for j in range(0, 4):
+                ras2vox[i, j] = float(response[4*i+j])
+        
         volArr = volImg.get_data()
         newVol = np.zeros(volArr.shape)
         coords, faces = nb.freesurfer.read_geometry(surface_file)
-        for coordinates in coords.shape[0]:
+        #applying affine transformation (RAS to voxel)
+        #and reconstructing surface on volume 
+        for i in range(0, coords.shape[0]):
+            coordinates = coords[i,:]
             x = coordinates[0]
             y = coordinates[1]
             z = coordinates[2]
+            coordTranf = np.zeros((4,1))
+            coordTranf[0,0] = x
+            coordTranf[1,0] = y
+            coordTranf[2,0] = z
+            coordTranf[3,0] = 1.
+            coordTranf = np.dot(ras2vox, coordTranf)
+            #surface coordinates are float numbers while volume
+            #coordinates are intergers,thus omitting decimal points to 
+            #by rounding
+            newX = coordTranf[0] 
+            newY = coordTranf[1] 
+            newZ = coordTranf[2]
+
+            xR = int(np.around(newX))
+            yR =int(np.around(newY))
+            zR =int(np.around(newZ))
+            newVol[xR, yR, zR]  = 1
+        return  newVol
+
 
 
