@@ -44,6 +44,10 @@ class FS(object):
         #using FS mri_info from shell
         FSHome = os.environ['FREESURFER_HOME']
         #first one was vox2ras
+        #WARNING: Freesurefer surface files are in RAS coordinates
+        #and are different from Freesurfer volume coordinates
+        #RAS coordinate is centered around 
+        #www.grahamwideman.com/gw/brain/fs/coords/fscoords.htm
         response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
                                             "--vox2ras", volume],
                                             stderr=subprocess.STDOUT, 
@@ -57,7 +61,7 @@ class FS(object):
         newVol = np.zeros(volArr.shape)
         coords, faces = nb.freesurfer.read_geometry(surface_file)
         #second getting ras2vox
-        ras2vo = np.zeros((4,4))
+        ras2vox = np.zeros((4,4))
         response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
                                             "--ras2vox", volume],
                                             stderr=subprocess.STDOUT, 
@@ -72,29 +76,31 @@ class FS(object):
         coords, faces = nb.freesurfer.read_geometry(surface_file)
         #applying affine transformation (RAS to voxel)
         #and reconstructing surface on volume 
+        
         for i in range(0, coords.shape[0]):
             coordinates = coords[i,:]
-            x = coordinates[0]
-            y = coordinates[1]
-            z = coordinates[2]
+            xRAS = coordinates[0]
+            yRAS = coordinates[1]
+            zRAS = coordinates[2]
+ 
             coordTranf = np.zeros((4,1))
-            coordTranf[0,0] = x
-            coordTranf[1,0] = y
-            coordTranf[2,0] = z
+            coordTranf[0,0] = xRAS
+            coordTranf[1,0] = yRAS
+            coordTranf[2,0] = zRAS
             coordTranf[3,0] = 1.
-            coordTranf = np.dot(vox2ras, coordTranf)
+            coordTranf = np.dot(ras2vox, coordTranf)
             #surface coordinates are float numbers while volume
             #coordinates are intergers,thus omitting decimal points to 
             #by rounding
             newX = coordTranf[0] 
             newY = coordTranf[1] 
             newZ = coordTranf[2]
-
+            
             xR = int(np.around(newX))
-            yR =int(np.around(newY))
-            zR =int(np.around(newZ))
+            yR = int(np.around(newY))
+            zR = int(np.around(newZ))
             newVol[xR, yR, zR]  = 1
-        return  newVol, ras2vox
+        return newVol
 
 
 
