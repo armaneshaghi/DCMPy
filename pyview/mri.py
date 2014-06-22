@@ -40,9 +40,24 @@ class FS(object):
         surface_file = self.surface_file
         volImg = nb.load(volume)
         #RAS to voxel affine transformation
-        ras2vox = np.zeros((4,4))
+        vox2ras = np.zeros((4,4))
         #using FS mri_info from shell
         FSHome = os.environ['FREESURFER_HOME']
+        #first one was vox2ras
+        response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
+                                            "--vox2ras", volume],
+                                            stderr=subprocess.STDOUT, 
+                                            shell=False)
+        response = response.split()
+        for i in range(0, 4):
+            for j in range(0, 4):
+                vox2ras[i, j] = float(response[4*i+j])
+        
+        volArr = volImg.get_data()
+        newVol = np.zeros(volArr.shape)
+        coords, faces = nb.freesurfer.read_geometry(surface_file)
+        #second getting ras2vox
+        ras2vo = np.zeros((4,4))
         response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
                                             "--ras2vox", volume],
                                             stderr=subprocess.STDOUT, 
@@ -51,7 +66,7 @@ class FS(object):
         for i in range(0, 4):
             for j in range(0, 4):
                 ras2vox[i, j] = float(response[4*i+j])
-        
+        ### 
         volArr = volImg.get_data()
         newVol = np.zeros(volArr.shape)
         coords, faces = nb.freesurfer.read_geometry(surface_file)
@@ -67,7 +82,7 @@ class FS(object):
             coordTranf[1,0] = y
             coordTranf[2,0] = z
             coordTranf[3,0] = 1.
-            coordTranf = np.dot(ras2vox, coordTranf)
+            coordTranf = np.dot(vox2ras, coordTranf)
             #surface coordinates are float numbers while volume
             #coordinates are intergers,thus omitting decimal points to 
             #by rounding
@@ -79,7 +94,7 @@ class FS(object):
             yR =int(np.around(newY))
             zR =int(np.around(newZ))
             newVol[xR, yR, zR]  = 1
-        return  newVol
+        return  newVol, ras2vox
 
 
 
