@@ -47,60 +47,39 @@ class FS(object):
         #WARNING: Freesurefer surface files are in RAS coordinates
         #and are different from Freesurfer volume coordinates
         #RAS coordinate is centered around 
-        #www.grahamwideman.com/gw/brain/fs/coords/fscoords.htm
         response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
-                                            "--vox2ras", volume],
+                                            "--vox2ras-tkr", volume],
                                             stderr=subprocess.STDOUT, 
                                             shell=False)
         response = response.split()
         for i in range(0, 4):
             for j in range(0, 4):
                 vox2ras[i, j] = float(response[4*i+j])
-        
+        vox2ras = np.matrix(vox2ras) 
+        invT1orig = np.linalg.inv(vox2ras)
+
+        volArr = volImg.get_data()
+        newVol = np.zeros(volArr.shape)
+        coords, faces = nb.freesurfer.read_geometry(surface_file) 
         volArr = volImg.get_data()
         newVol = np.zeros(volArr.shape)
         coords, faces = nb.freesurfer.read_geometry(surface_file)
-        #second getting ras2vox
-        ras2vox = np.zeros((4,4))
-        response = subprocess.check_output(["%s/bin/mri_info" %(FSHome),
-                                            "--ras2vox", volume],
-                                            stderr=subprocess.STDOUT, 
-                                            shell=False)
-        response = response.split()
-        for i in range(0, 4):
-            for j in range(0, 4):
-                ras2vox[i, j] = float(response[4*i+j])
-        ### 
-        volArr = volImg.get_data()
-        newVol = np.zeros(volArr.shape)
-        coords, faces = nb.freesurfer.read_geometry(surface_file)
-        #applying affine transformation (RAS to voxel)
-        #and reconstructing surface on volume 
-        
         for i in range(0, coords.shape[0]):
             coordinates = coords[i,:]
-            xRAS = coordinates[0]
-            yRAS = coordinates[1]
-            zRAS = coordinates[2]
- 
-            coordTranf = np.zeros((4,1))
-            coordTranf[0,0] = xRAS
-            coordTranf[1,0] = yRAS
-            coordTranf[2,0] = zRAS
-            coordTranf[3,0] = 1.
-            coordTranf = np.dot(ras2vox, coordTranf)
+            R = coordinates[0]
+            A = coordinates[1]
+            S = coordinates[2]
+            RASmatrix = np.matrix([R, A, S, 1])
+            RASmatrixT = np.transpose(RASmatrix)
+            VoxCRS = invT1orig * RASmatrixT
             #surface coordinates are float numbers while volume
-            #coordinates are intergers,thus omitting decimal points to 
+            #coordinates are intergers,thus omitting decimal points
             #by rounding
-            newX = coordTranf[0] 
-            newY = coordTranf[1] 
-            newZ = coordTranf[2]
-            
-            xR = int(np.around(newX))
-            yR = int(np.around(newY))
-            zR = int(np.around(newZ))
+            xVol = VoxCRS[0,0]
+            yVol = VoxCRS[1,0]
+            zVol = VoxCRS[2,0]
+            xR = int(np.around(xVol))
+            yR = int(np.around(yVol))
+            zR = int(np.around(zVol))
             newVol[xR, yR, zR]  = 1
         return newVol
-
-
-
