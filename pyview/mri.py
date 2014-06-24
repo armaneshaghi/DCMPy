@@ -8,9 +8,17 @@ import os
 
 class FS(object):
  
-    def __init__(self, volume_file, surface_file, slice_number=170):
+    def __init__(self, subject_name, slices):
+        """
+        subject_name: string indicating subject name as seen in 
+        Freesurfer subjects directory (shell $SUBJECTS_DIR variable)
+        slices: numpy array of size n by 3 indicating n slices in axial,
+        sagittal and coronal sections
+        """
+
         self.volume_file = volume_file
-        self.surface_file = surface_file
+        self.slices = slices
+        self.subject_name = subject_name
 
     def volShow(self): 
         path = self.volume_file
@@ -35,9 +43,7 @@ class FS(object):
             plt.title('slice %d' %(slice))
         return self
 
-    def surfaceMask(self): 
-        volume = self.volume_file
-        surface_file = self.surface_file
+    def _surfaceMask(volume, surface_file): 
         volImg = nb.load(volume)
         #RAS to voxel affine transformation
         vox2ras = np.zeros((4,4))
@@ -83,3 +89,120 @@ class FS(object):
             zR = int(np.around(zVol))
             newVol[xR, yR, zR]  = 1
         return newVol
+
+    def _coronalShow(data, slice, overlay = False, surface = None):
+        
+        """
+        function to plot T1 volume and pial/WM surfaces
+        data: nibabel loaded numpy array
+        slice: integer indicating number of the desired slice
+        overlay: boolean indicating whether the data is an overlay or not
+        surface: string indicating what kind of surface is overlay (wm or pial)
+
+        """
+
+        if not overlay:
+            plt.imshow(np.rot90(data[:, :, slice], k=3),
+                        cmap = plt.cm.gray ,  aspect = 'auto', 
+                        interpolation = 'nearest')
+        if overlay:
+            overlayD = np.ma.masked_array(data, data == 0)
+            if surface =='wm':
+                plt.imshow(np.rot90(overlayD[:,:, slice], k=3),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+            if surface = 'pial':
+                plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+        return None
+
+    def _axialShow(data, slice, overlay = False, surface = None):
+        """
+        similar to _coronalshow
+        """
+        if not overlay:
+            plt.imshow(np.rot90(data[:, slice, :], k=1),
+                        cmap = plt.cm.gray ,  aspect = 'auto', 
+                        interpolation = 'nearest')
+
+        if overlay: 
+            overlayD = np.ma.masked_array(data, data == 0)
+            if surface =='wm':
+                plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+            if surface = 'pial':
+                plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+
+        return None
+
+    def _sagitalShow(data, slice):
+        """
+        similar to _coronalshow
+        """
+        if not overlay:
+            plt.imshow(np.rot90(data[slice, :, :], k=0),
+                        cmap = plt.cm.gray ,  aspect = 'auto', 
+                        interpolation = 'nearest')
+        if overlay: 
+            overlayD = np.ma.masked_array(data, data == 0)                      
+            if surface =='wm':
+                plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+            if surface = 'pial':
+                plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
+                           aspect = 'auto',                                 
+                           interpolation = 'nearest')                       
+                 
+        return None
+
+    def superimpose(self):
+        slices = self.slices
+        subId = self.subject_name
+        subDir = os.environ['SUBJECTS_DIR']
+        orig = os.path.join(subDir, subId, 'mri/orig.mgz') 
+        lhPial = os.path.join(subDir, subId, 'surf/lh.pial')
+        rhPial = os.path.join(subDir, subId, 'surf/rh.pial')
+        lhWm = os.path.join(subDir, subId, 'surf/lh.white')
+        rhWm = os.path.join(subDir, subId, 'surf/rh.white')
+        #projecting surface to volume
+        lhPialD = _surfaceMask(volume = orig,
+                surface_file = lhPial)
+        rhPialD = _surfaceMask(volume = orig,
+                surface_file = rhPial)
+        lhWmD = _surfaceMask(volume = orig,
+                surface_file = lhWm)
+        rhWmD = _surfaceMask(volume = orig,
+                surface_file = rhWm)
+        orig_data = nb.load(orig).get_data()
+        totSlices = slices.shape[0] = slices.shape[1]
+        rows = np.round(totSlices/2)
+        columns  = totSlices - rows
+        #getting slice numbers for each view
+        axialSlices =  slices[:,0]
+        sagSlices = slices[:, 1]
+        corSlices = slices[:, 2]
+       
+        #starting from axial
+        figNo = 0
+        width = columns * 20
+        height = rows * 20
+        fig = plt.figure(figsize = (width, height))
+        for slice in axialSlices:
+            figNo += 1
+            f =  fig.add_subplot(rows, columns, figNo)
+            _axialShow(orig_data, slice)
+        d
