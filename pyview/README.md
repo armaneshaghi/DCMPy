@@ -30,3 +30,8 @@ slices[3,2] = 100
 fscheck = mri.FS(subject_name = 'baseline_V_V1', slices = slices)
 fscheck.superimpose()
 ```
+
+The output inside IPython notebook is:
+ 
+![alt text](pyview_example.png "surface on volume overlay")
+
