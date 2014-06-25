@@ -12,7 +12,7 @@ notebook fails.
 
 Example usage:
 
-```
+```python
 from cogpy.pyview import mri
 slices = np.zeros([4, 3])
 slices[0,0] = 128
