@@ -13,6 +13,7 @@ notebook fails.
 Example usage:
 
 ```
+from cogpy.pyview import mri
 slices = np.zeros([4, 3])
 slices[0,0] = 128
 slices[1,0] = 118
