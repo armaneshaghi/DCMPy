@@ -16,7 +16,6 @@ class FS(object):
         sagittal and coronal sections
         """
 
-        self.volume_file = volume_file
         self.slices = slices
         self.subject_name = subject_name
 
@@ -35,7 +34,6 @@ class FS(object):
         for i in range(6):
             f =  fig.add_subplot(3, 3, i + 1)
             slice = lowest_slice + i * interval 
-            print slice
             plt.imshow(img_data[:, :, slice],
                     cmap = plt.cm.gray,  aspect = 'auto', 
                     interpolation = 'nearest')
@@ -43,7 +41,7 @@ class FS(object):
             plt.title('slice %d' %(slice))
         return self
 
-    def _surfaceMask(volume, surface_file): 
+    def _surfaceMask(self, volume, surface_file): 
         volImg = nb.load(volume)
         #RAS to voxel affine transformation
         vox2ras = np.zeros((4,4))
@@ -90,7 +88,8 @@ class FS(object):
             newVol[xR, yR, zR]  = 1
         return newVol
 
-    def _coronalShow(data, slice, overlay = False, surface = None):
+    def _coronalShow(self, data, slice, overlay = False,
+            surface = None):
         
         """
         function to plot T1 volume and pial/WM surfaces
@@ -112,14 +111,15 @@ class FS(object):
                            cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
                            aspect = 'auto', 
                            interpolation = 'nearest')
-            if surface = 'pial':
+            if surface == 'pial':
                 plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
                            cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
                            aspect = 'auto', 
                            interpolation = 'nearest')
         return None
 
-    def _axialShow(data, slice, overlay = False, surface = None):
+    def _axialShow(self, data, slice, overlay = False,
+            surface = None):
         """
         similar to _coronalshow
         """
@@ -136,7 +136,7 @@ class FS(object):
                            aspect = 'auto', 
                            interpolation = 'nearest')
 
-            if surface = 'pial':
+            if surface == 'pial':
                 plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
                            cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
                            aspect = 'auto', 
@@ -145,7 +145,8 @@ class FS(object):
 
         return None
 
-    def _sagitalShow(data, slice):
+    def _sagitalShow(self, data, slice, overlay = False,
+            surface = None):
         """
         similar to _coronalshow
         """
@@ -161,7 +162,7 @@ class FS(object):
                            aspect = 'auto', 
                            interpolation = 'nearest')
 
-            if surface = 'pial':
+            if surface == 'pial':
                 plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
                            cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
                            aspect = 'auto',                                 
@@ -170,6 +171,10 @@ class FS(object):
         return None
 
     def superimpose(self):
+        """
+        main function to loop aroung all slices and plot images
+        """
+
         slices = self.slices
         subId = self.subject_name
         subDir = os.environ['SUBJECTS_DIR']
@@ -179,30 +184,70 @@ class FS(object):
         lhWm = os.path.join(subDir, subId, 'surf/lh.white')
         rhWm = os.path.join(subDir, subId, 'surf/rh.white')
         #projecting surface to volume
-        lhPialD = _surfaceMask(volume = orig,
-                surface_file = lhPial)
-        rhPialD = _surfaceMask(volume = orig,
-                surface_file = rhPial)
-        lhWmD = _surfaceMask(volume = orig,
-                surface_file = lhWm)
-        rhWmD = _surfaceMask(volume = orig,
-                surface_file = rhWm)
+        lhPialD = self._surfaceMask(volume = orig, surface_file = lhPial)
+        rhPialD = self._surfaceMask(volume = orig, surface_file = rhPial)
+        lhWmD = self._surfaceMask(volume = orig, surface_file = lhWm)
+        rhWmD = self._surfaceMask(volume = orig, surface_file = rhWm)
         orig_data = nb.load(orig).get_data()
-        totSlices = slices.shape[0] = slices.shape[1]
+        totSlices = slices.shape[0] + slices.shape[1]
         rows = np.round(totSlices/2)
         columns  = totSlices - rows
         #getting slice numbers for each view
-        axialSlices =  slices[:,0]
-        sagSlices = slices[:, 1]
-        corSlices = slices[:, 2]
+        axialSlices =  slices[:, 0]
+        sagitalSlices = slices[:, 1]
+        coronalSlices = slices[:, 2]
        
         #starting from axial
         figNo = 0
         width = columns * 20
         height = rows * 20
         fig = plt.figure(figsize = (width, height))
+        print '%s\n' % (subId)
         for slice in axialSlices:
             figNo += 1
             f =  fig.add_subplot(rows, columns, figNo)
-            _axialShow(orig_data, slice)
-        d
+            #drawing main volume
+            self._axialShow(data = orig_data, slice = slice)
+            #drawing overlays: lh
+            self._axialShow(data = lhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+            self._axialShow(data = lhWmD, slice = slice, overlay = True, 
+                    surface = 'wm')
+            #drawing overlays: rh
+            self._axialShow(data = rhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+            self._axialShow(data = rhWmD, slice = slice, overlay = True, 
+                    surface = 'wm')
+        for slice in coronalSlices:
+            figNo += 1
+            f =  fig.add_subplot(rows, columns, figNo)
+            #drawing main volume
+            self._coronalShow(data = orig_data, slice = slice)
+            #drawing overlays: lh
+            self._coronalShow(data = lhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+            self._coronalShow(data = lhWmD, slice = slice, overlay = True, 
+                    surface = 'wm')
+            #drawing overlays: rh
+            self._coronalShow(data = rhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+            self._coronalShow(data = rhWmD, slice = slice, overlay = True, 
+                    surface = 'wm')
+
+
+        for slice in sagitalSlices:
+            figNo += 1
+            f =  fig.add_subplot(rows, columns, figNo)
+            #drawing main volume
+            self._sagitalShow(data = orig_data, slice = slice)
+            #drawing overlays: lh
+            self._sagitalShow(data = lhPialD, slice = slice, overlay = True,
+                     surface = 'pial')
+            self._sagitalShow(data = lhWmD, slice = slice, overlay = True, 
+                     surface = 'wm')
+            #drawing overlays: rh
+            self._sagitalShow(data = rhPialD, slice = slice, overlay = True,
+                     surface = 'pial')
+            self._sagitalShow(data = rhWmD, slice = slice, overlay = True, 
+                     surface = 'wm')
+        return self
