@@ -1,12 +1,14 @@
 PyView
 ======
 
-This module tries to imitate freeview, which is a 
-cpp package for visualisation of Freesurfer outputs.
+This module tries to imitate Freeview, which is a 
+C++ package for visualisation of Freesurfer outputs.
 PyView is designed to work inside IPython notebook only, 
 makes use of advanced visualization and interactive widgets
 inside IPython notebook. Therefore, using it outside IPython
 notebook fails.
+
+Warning: This package is constantly changing and unreleased. 
 
 ---
 
@@ -31,7 +33,7 @@ fscheck = mri.FS(subject_name = 'baseline_V_V1', slices = slices)
 fscheck.superimpose()
 ```
 
-The output inside IPython notebook is:
+The output inside IPython notebook shows pial surface in yellow and white matter surface in red:
  
 ![alt text](pyview_example.png "surface on volume overlay")
 
