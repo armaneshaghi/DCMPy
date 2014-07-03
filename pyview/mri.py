@@ -1,4 +1,5 @@
 from matplotlib import figure
+from pylab import *
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
@@ -30,7 +31,7 @@ class FS(object):
 
         interval = np.divide(middleToEndRange, 3)
         lowest_slice = middle_slice - 2 * interval
-        fig = plt.figure(figsize = (12, 15))
+        fig = plt.figure(figsize = (12, 15)) 
         for i in range(6):
             f =  fig.add_subplot(3, 3, i + 1)
             slice = lowest_slice + i * interval 
@@ -224,6 +225,7 @@ class FS(object):
         for slice in axialSlices:
             figNo += 1
             f =  fig.add_subplot(rows, columns, figNo)
+            fig.suptitle('%s' %(subId), fontsize=35, fontweight='bold')
             #drawing main volume
             self._axialShow(data = orig_data, slice = slice)
             #drawing overlays: lh
