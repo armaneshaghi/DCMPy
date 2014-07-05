@@ -32,8 +32,28 @@ class read(self,path, *args, **kwargs):
         else
             raise Exception('invalid block name')
         return block_type
+   
+   def __substringIndex__(self, stringList, subString):
+       for i, s in enumerate(stringList):
+           if subString in s:
+               return i
+       return -1
 
-   def __startFind__(self, block):
+   def __experimentStart__(self, logContent):
+       startLineIndex = self.__substringIndex__(logContent, 'Key\t33\tDOWN\tat')
+       nextStartLineIndex = startLineIndex + 1 
+       startLine = logContent[startLineIndex]
+       nextStartLine = logContent[nextStartLineIndex]
+       experiment_start = re.search('(\d{3,})\s+\\r\\n$', startLine)
+       experiment_start = experiment_start.group(1)
+       experiment_start_next = re.search('(\d{3,})\s+\\r\\n$', nextStartLine)
+       experiment_start_next = experiment_start_next.group(1)
+       if experiment_start != experiment_start_next:
+           raise Exception('ill-posed log file')
+       return double(experiment_start) 
+        
+       
+       
        
    
    def 
@@ -42,5 +62,7 @@ class read(self,path, *args, **kwargs):
        log_content = self.__content_read__(log)
        res_content = self.__content_read__(res)
        #setting start of the experiment
-       block_type = 
+       exOnset = self.__experimentStart__(log_content)
+
+       
 
