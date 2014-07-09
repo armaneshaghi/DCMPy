@@ -54,13 +54,56 @@ class read(self,path, *args, **kwargs):
        if experiment_start != experiment_start_next:
            raise Exception('ill-posed log file')
        return double(experiment_start)
+   
+   def __oneBack__(self, stimuli):
+       #stimuli with 3 columns
+
+       for i in range(0, 10):
+           current_stimuli = stimuli[i, 0]
+           if i == 0:
+               continue
+           prev_stimulus = stimuli[i-1, 0]
+
+           
+
+
    def __blockResult__(self, resContent):
+       #order of presented blocks, e.g: 0-back
+       #1-back and 2-back
+       #
+       task_order = np.zeros((30, 0))
+       #stimuli with 10 rows for each presented
+       #stimuli and 3 columns for: 1) presented 
+       #stimuli, 2) time of presentation 3) whether
+       #the subject hit the button (1 = Hit)
+       stimuli = np.zeros((10, 3))
+
+       n_backPat = re.compile("'(\d)-back'\s*.*")
+       stimulus_pat = re.compile("'(\d)'\s*(\d{3,})\s*(\d)\s*\d")
        for i in range(0, 30):
-           blockContent = resContent[0 + (i * 12), 12 + (i * 12)]
+           blockContent = resContent[0 + (i * 12) : 12 + (i * 12)]
            for j, s in enumerate(blockContent):
                #first finding out what N back we are dealing with
-               n_backPat = re.compile("'(\d)-back'\s*.*")
-               n
+               if j == 0:
+                   n_back_search = n_backPat.search(s)
+                   if n_back_search is not None:
+                       n_back_type = int(n_back_search.group(1)) 
+                       task_order[i, 0] = n_back_type
+
+                   else:
+                       raise Exception("cannot understand block\
+                               result's first line")
+               if j >= 2:
+                   stimulus_search = stimulus_pat.search(s)
+                   if stimulus_search is not None:
+                       #minus 2 is because the first two lines are not stimuli
+                       stimuli[j-2, 0] = int(stimulus_search.group(1))
+                       stimuli[j-2, 1] = double(stimulus_search.group(2))
+                       stimuli[j-2, 2] = int(stimulus_search.group(3))
+           if n_back_type == 0:
+
+
+
 
 
    def __blockAnalyse__(self, logContent):

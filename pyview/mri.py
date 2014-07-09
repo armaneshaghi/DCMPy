@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import figure
 from pylab import *
 import matplotlib.pyplot as plt
@@ -270,4 +272,5 @@ class FS(object):
                      surface = 'pial')
             self._sagitalShow(data = rhWmD, slice = slice, overlay = True, 
                      surface = 'wm')
+            fig.imwrite('/tmp/testis.png')
         return self
