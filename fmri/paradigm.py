@@ -54,21 +54,47 @@ class read(self,path, *args, **kwargs):
        if experiment_start != experiment_start_next:
            raise Exception('ill-posed log file')
        return double(experiment_start)
-   
+
+
    def __oneBack__(self, stimuli):
        #stimuli with 3 columns
-       output_array = np.zeros((10,0))
-
-
+       #finding hits and returning a
+       #list of two integers that are
+       #INDICES of hits
+       hits = [None] * 2 #1 is hit, zero not hit
 
        for i in range(0, 10):
            current_stimuli = stimuli[i, 0]
            if i == 0:
                continue
            prev_stimulus = stimuli[i-1, 0]
+           if prev_stimulus == current_stimuli:
+               if hits[0] is None:
+                   hits[0] = i
+               else:
+                   hits[1] = i
+       return hits
 
-    
-
+    def __twoBack__(self, stimuli):
+        #returing a list of two integers
+        #each corresponding to a 
+        #hit index
+        #stimuli with 3 columns
+        hits = [None] * 2 
+                                                  
+        for i in range(0, 10):
+            current_stimuli = stimuli[i, 0]
+            if i == 0:
+                continue
+            if i == 2:
+                continue
+            prev2_stimulus = stimuli[i-2, 0]
+            if prev2_stimulus == current_stimuli:
+                if hits[0] is None:
+                    hits[0] = i
+                else:
+                    hits[1] = i
+        return hits
 
    def __blockResult__(self, resContent):
        #order of presented blocks, e.g: 0-back
@@ -100,6 +126,8 @@ class read(self,path, *args, **kwargs):
                    stimulus_search = stimulus_pat.search(s)
                    if stimulus_search is not None:
                        #minus 2 is because the first two lines are not stimuli
+                       #columns: 1 = presented 2 = time of presentation
+                       #3 = subject reponse (0 or 1)
                        stimuli[j-2, 0] = int(stimulus_search.group(1))
                        stimuli[j-2, 1] = double(stimulus_search.group(2))
                        stimuli[j-2, 2] = int(stimulus_search.group(3))
