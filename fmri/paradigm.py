@@ -131,6 +131,11 @@ class read(self,path, *args, **kwargs):
                        stimuli[j-2, 0] = int(stimulus_search.group(1))
                        stimuli[j-2, 1] = double(stimulus_search.group(2))
                        stimuli[j-2, 2] = int(stimulus_search.group(3))
+                       if stimuli[j-2, 2] == 28:
+                           stimuli[j-2, 2] = 1
+                       else:
+                           stimuli[j-2, 2] = 0
+
            if n_back_type == 0:
 
 
