@@ -57,6 +57,9 @@ class read(self,path, *args, **kwargs):
    
    def __oneBack__(self, stimuli):
        #stimuli with 3 columns
+       output_array = np.zeros((10,0))
+
+
 
        for i in range(0, 10):
            current_stimuli = stimuli[i, 0]
@@ -64,7 +67,7 @@ class read(self,path, *args, **kwargs):
                continue
            prev_stimulus = stimuli[i-1, 0]
 
-           
+    
 
 
    def __blockResult__(self, resContent):

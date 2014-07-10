@@ -11,7 +11,7 @@ import os
 
 class FS(object):
  
-    def __init__(self, subject_name, slices):
+    def __init__(self, subject_name, slices, path):
         """
         subject_name: string indicating subject name as seen in 
         Freesurfer subjects directory (shell $SUBJECTS_DIR variable)
@@ -21,6 +21,7 @@ class FS(object):
 
         self.slices = slices
         self.subject_name = subject_name
+        self.path = path
 
     def volShow(self): 
         path = self.volume_file
@@ -105,20 +106,22 @@ class FS(object):
 
         if not overlay:
             plt.imshow(np.rot90(data[:, :, slice], k=3),
-                        cmap = plt.cm.gray ,  aspect = 'auto', 
-                        interpolation = 'nearest')
+                            cmap = plt.cm.gray ,  aspect = 'auto', 
+                            interpolation = 'nearest')
+
+
         if overlay:
             overlayD = np.ma.masked_array(data, data == 0)
             if surface =='wm':
-                plt.imshow(np.rot90(overlayD[:,:, slice], k=3),
-                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                           aspect = 'auto', 
-                           interpolation = 'nearest')
+                    plt.imshow(np.rot90(overlayD[:,:, slice], k=3),
+                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                               aspect = 'auto', 
+                               interpolation = 'nearest')
             if surface == 'pial':
-                plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
-                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
-                           aspect = 'auto', 
-                           interpolation = 'nearest')
+                    plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
+                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                               aspect = 'auto', 
+                               interpolation = 'nearest')
         return None
 
     def _axialShow(self, data, slice, overlay = False,
@@ -135,18 +138,19 @@ class FS(object):
             overlayD = np.ma.masked_array(data, data == 0)
             if surface =='wm':
                 plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
-                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                           aspect = 'auto', 
-                           interpolation = 'nearest')
+                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                               aspect = 'auto', 
+                               interpolation = 'nearest')
 
             if surface == 'pial':
                 plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
-                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
-                           aspect = 'auto', 
-                           interpolation = 'nearest')
+                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                               aspect = 'auto', 
+                               interpolation = 'nearest')
 
 
         return None
+        
 
     def _sagitalShow(self, data, slice, overlay = False,
             surface = None):
@@ -155,21 +159,21 @@ class FS(object):
         """
         if not overlay:
             plt.imshow(np.rot90(data[slice, :, :], k=0),
-                        cmap = plt.cm.gray ,  aspect = 'auto', 
-                        interpolation = 'nearest')
+                            cmap = plt.cm.gray ,  aspect = 'auto', 
+                            interpolation = 'nearest')
         if overlay: 
             overlayD = np.ma.masked_array(data, data == 0)                      
             if surface =='wm':
                 plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
-                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                           aspect = 'auto', 
-                           interpolation = 'nearest')
+                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                               aspect = 'auto', 
+                               interpolation = 'nearest')
 
             if surface == 'pial':
                 plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
-                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
-                           aspect = 'auto',                                 
-                           interpolation = 'nearest')                       
+                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
+                               aspect = 'auto',                                 
+                               interpolation = 'nearest')                       
                  
         return None
 
@@ -198,6 +202,7 @@ class FS(object):
 
         slices = self.slices
         subId = self.subject_name
+        path = self.path
         subDir = os.environ['SUBJECTS_DIR']
         orig = os.path.join(subDir, subId, 'mri/orig.mgz') 
         lhPial = os.path.join(subDir, subId, 'surf/lh.pial')
@@ -272,5 +277,29 @@ class FS(object):
                      surface = 'pial')
             self._sagitalShow(data = rhWmD, slice = slice, overlay = True, 
                      surface = 'wm')
-            fig.imwrite('/tmp/testis.png')
+            
+        png_file = subId + '.png'
+        path = os.path.join(path, png_file) 
+        savefig(path, dpi = 50)
+        plt.close()
+        plt.clf()
+        plt.cla()
         return self
+
+#work in progress
+ge(subject_list, index_path):
+    '''
+    index_path = path for index.html file
+    subject list: list of strings
+    '''
+    with open(index_path, 'w') as html:
+        html.write('<html lang="en-US">\n<head>\n<title>FS QA</title>\
+        </head><body>\n')
+        for i, subject in enumerate(subject_list):
+            html.write('<img src="%s.png" alt="%s"' 
+                       'width="1000" height="800">\n'
+                       '<hr>\n'
+                       %(subject, subject))
+            if i == (len(subject_list)-1):
+                html.write('</body></html>')
+        html.close()
