@@ -54,7 +54,7 @@ class read(object):
         experiment_start_next = experiment_start_next.group(1)
         if experiment_start != experiment_start_next:
             raise Exception('ill-posed log file')
-        return double(experiment_start)
+        return int(experiment_start)
  
  
     def __oneBack__(self, stimuli):
@@ -142,38 +142,36 @@ class read(object):
                             stimuli[row, 2] = 0
             temp_stimuli = np.copy(stimuli)
             all_stimuli.append(temp_stimuli)
-        
         return all_stimuli, task_order
  
- 
- 
-    ''' 
-    def __blockAnalyse__(self, logContent):
-        #pattern of first stimulus of each block, group 1 = n-back load, 2 = time of onset
-        pat_firstStimOnset = re.compile('start of (\d-back) run number \d{1,2} at\
-                slice number \d{1,3} at time (\d{3,})')
-        #pattern of the last stimulus in log, group 1
-        pat_lastStimulus = re.compile('start of \d-back run number [0-9]{1,2} trial\
-                number 10 at slice number \d{1,3} at time (\d{3,})')
+    def __sensAnalyzer__(self, stimuli, hits):
+        TP = 0
+        TN = 0
+        FP = 0
+        FN = 0
+        firstHit = hits[0]
+        secondHit = hits[1]
+        for i in range(0, 10): 
+            subHit = sitmuli[i, 2]
+            #it is a true hit
+            if i == firstHit or i == secondHit:
+                #subject presses button
+                if subHit == 1:
+                    TP += 1
+                    #true positive needs reaction time calculation
+
+                #subject does not press the button
+                if subHit != 1:
+                     FN += 1
+            #if it is not a hit see what subject is doing:
+            #it is not a hit and subject doesn't do anything
+            elif subHit == 0:
+                 TN += 1
+            #it is not a hit and subject hits the button
+            elif subHit == 1:
+                 FP += 1
+        return TP, TN, FN, FP
+    def __reactionTimer__(self, logContent, ):
+        for 
+     
         
-        for i, line in enumerate(logContent):
-            
-            
-            
- 
-        startLineIndex = self.__substringIndex__(logContent)
- 
- 
- 
-    def  testing():
-        log = self.log
-        res = self.res
-        log_content = self.__content_read__(log)
-        res_content = self.__content_read__(res)
-        #setting start of the experiment
-        exOnset = self.__scanStart__(log_content)
-        return None
-        
- 
-        
-''' 
