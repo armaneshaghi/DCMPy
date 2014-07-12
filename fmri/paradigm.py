@@ -38,15 +38,39 @@ class read(object):
         '''
         FSFAST paradigm file requires at least 3 columns:
         1. onset of condition
-        2. numeric ID that codes the condition (0-back = 1, 1-back = 2, 2-back = 3, fixation = 0)
+        2. numeric ID that codes the condition (0-back = 1, 1-back = 2, 
+        2-back = 3, fixation = 0)
         3. Stimulus duration
-        4. Weight for parametric modulation (1 for 0-back, 2 for 1-back, 3 for 2-back and 0 for rest (fixation) 
+        we will also include the following columns for the sake of completeness:
+        4. Weight for parametric modulation (1 for 0-back, 2 for 1-back,
+        3 for 2-back and 0 for rest (fixation) 
         5. name of condition (0-back, 1-back, 2-back and rest)
         '''
         fsfast=list()
+        isi = 1400               
+        stimulus_duration = 1000
         for block_number, block in enumerate(normalised_all_stimuli,
-            rest_start_stop, ):
+            task_order, rest_start_stop):
             n_back_type = task_order[block_number]
+            weight, numeric_id, name_of_condition = __fsfastCondition__(n_back_type)
+            #block duration is the difference between last and first stimuli added to 
+            #the time that last stimuli is still on the screen (stimulus duration and isi)
+            first_stimulus_onset = block[0,1]
+            #for the sake of readability
+            block_onset = first_stimulus_onset
+            last_stimulus_onset = block[9, 1]
+            #block duration as explained above
+            duration = last_stimulus_onset - first_stimulus_onset + stimulus_duration + isi
+            row = [block_onset, numeric_id, duration, weight, name_of_condition]
+            row_temporary = row[:]
+            fsfast.append(row_temporary)
+            last_index = len(normalised_all_stimuli) - 1
+            #adding rest block, the very last block does not come with a rest, hence '!='
+            if block_number != last_index:
+                
+
+
+
             
             
  
