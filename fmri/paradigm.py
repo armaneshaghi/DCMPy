@@ -17,7 +17,18 @@ class read(object):
         self.log = log
         self.res = res
         return None
-    
+    def __main__(self):
+        logfile = self.log
+        resfile = self.res
+        #extracting each file's content
+        logContent = self.__content_read__(logfile)
+        resContent = self.__content_read__(resfile)
+        #extracting blocks
+        all_stimuli, block_order = __blockResult__(resContent)
+        #
+
+
+
     def __content_read__(self, textfile):    
         with open(textfile) as text:
             content = text.readlines()
@@ -35,12 +46,13 @@ class read(object):
         return block_type
    
     def __substringIndex__(self, stringList, subString):
+        #finds the line at which subString exists
         for i, s in enumerate(stringList):
             if subString in s:
                 return i
         return -1
 
-    def __scantStart__(self, logContent):
+    def __scanStart__(self, logContent):
         #giving the time at which the very first scan 
         #has been acquired, TR = 2.0 
         #first real scan = 7
@@ -143,14 +155,31 @@ class read(object):
             temp_stimuli = np.copy(stimuli)
             all_stimuli.append(temp_stimuli)
         return all_stimuli, task_order
- 
-    def __sensAnalyzer__(self, stimuli, hits):
+    
+    def __normalisedTime__(self, all_stimuli, scan_start):
+        #normaly all times are calculated from the start of 
+        #cogent, here we calculate times since the very first 
+        #scan time (acquired from __scanStart__from log file
+        new_all_stimuli = list()
+        for array_number, array in enumerate(all_stimuli):
+            rows = array.shape[0]
+            for row_number in range(0, rows):
+                time = array[row_number, 1]
+                new_time = time - scan_start
+                array[row_number, 1] = new_time
+            temp_array = np.copy(array)
+            new_all_stimuli.append(temp_array)
+        return new_all_stimuli
+    
+    def __sensReactAnalyzer__(self, stimuli, hits, logContent):
+        
         TP = 0
         TN = 0
         FP = 0
         FN = 0
         firstHit = hits[0]
         secondHit = hits[1]
+        reaction_time_list = list()
         for i in range(0, 10): 
             subHit = sitmuli[i, 2]
             #it is a true hit
@@ -159,7 +188,11 @@ class read(object):
                 if subHit == 1:
                     TP += 1
                     #true positive needs reaction time calculation
-
+                    #second column from each block of stimuli numpy array 
+                    #represents the stimuli onset
+                    stimulus_onset = stimuli[i, 1]
+                    reaction_time = __reactionTimer__(logContent, stimulus_onset)
+                    reaction_time_list.append(reaction_time)
                 #subject does not press the button
                 if subHit != 1:
                      FN += 1
@@ -170,8 +203,49 @@ class read(object):
             #it is not a hit and subject hits the button
             elif subHit == 1:
                  FP += 1
-        return TP, TN, FN, FP
-    def __reactionTimer__(self, logContent, ):
-        for 
-     
-        
+        return TP, TN, FN, FP, reaction_time
+    
+    def __restBlockAnalyzer__(self, normalised_all_stimuli):
+        #units in milisecond
+        isi = 1400
+        stimulus_duration = 1000
+        instructions = 6000
+        number_of_rest_blocks = len(normalised_all_stimuli) - 1
+        rest_start_stop = np.zeros((29, 2))
+        for i in range(0, number_of_rest_blocks):
+            current_block = normalised_all_stimuli[i]
+            next_block = normalised_all_stimuli[i + 1]
+            last_stimuli_current_block = current_block[10, 1]
+            first_stimuli_next_block = next_block[1, 1]
+            end_of_current_block = last_stimuli_current_block + stimulus_duration
+            rest_start = end_of_current_block
+            start_of_next_block = first_stimuli_next_block - instructions
+            rest_stop = start_of_next_block
+            rest_start_stop[i, 0] = 
+
+    
+    
+    def __reactionTimer__(log_content, stimulus_onset):
+        #SO: stimulus onset extracted from res files
+        reg_ex_pat = ".*presented at time %d\\r\\n" %(stimulus_onset)
+        reg_ex_pat = re.compile(reg_ex_pat)
+        #first we find the stimulus presentation in log file
+        #using stimulus onset time extracted from res file
+        for line_number, line in enumerate(log_content):
+            stimulus_pres_log = reg_ex_pat.search(line)
+            if stimulus_pres_log is not None:
+                presentation_line = line_number
+                break
+        #now that we have line number, starting from stimulus presentation
+        #time, we search for the time subject hit the button
+        subject_response_pat = ".*\\tKey\\t28\\tDOWN\\tat\\t(\d*)\s*\\r\\n"
+        subject_response_pat = re.compile(subject_response_pat)
+        for line in log_content[presentation_line:]:
+            search_result = subject_response_pat.search(line)
+            if search_result is not None:
+                subject_response_time = int(search_result.group(1))
+                break
+        reaction_time = subject_response_time - stimulus_onset
+        return reaction_time
+
+
