@@ -25,10 +25,46 @@ class read(object):
         resContent = self.__content_read__(resfile)
         #extracting blocks
         all_stimuli, block_order = __blockResult__(resContent)
+        for block_number, block in enumerate(all_stimuli):
+            n_back_type = int(task_order[block_number]
+            if n_back_type =! 0:
+                
+
         #
 
 
-
+    def __fsfastWriter__(self, normalised_all_stimuli, task_order):
+ 
+        '''
+        FSFAST paradigm file requires at least 3 columns:
+        1. onset of condition
+        2. numeric ID that codes the condition (0-back = 1, 1-back = 2, 2-back = 3, fixation = 0)
+        3. Stimulus duration
+        4. Weight for parametric modulation (1 for 0-back, 2 for 1-back, 3 for 2-back and 0 for rest (fixation) 
+        5. name of condition (0-back, 1-back, 2-back and rest)
+        '''
+        fsfast=list()
+        for block_number, block in enumerate(normalised_all_stimuli,
+            rest_start_stop, ):
+            n_back_type = task_order[block_number]
+            
+            
+ 
+    def __fsfastCondition__(n_back_type):
+        if n_back_type == 0:
+            weight = 1
+            numeric_id = 1
+            name_of_condition = '0-back'
+        elif n_back_type == 1:
+            weight = 2
+            numeric_id = 2
+            name_of_condition = '1-back'
+        elif n_back_type = 2:
+            weight = 3
+            numeric_id = 3
+            name_of_condition = '2-back'
+        return weight, numeric_id, name_of_condition
+ 
     def __content_read__(self, textfile):    
         with open(textfile) as text:
             content = text.readlines()
@@ -206,22 +242,29 @@ class read(object):
         return TP, TN, FN, FP, reaction_time
     
     def __restBlockAnalyzer__(self, normalised_all_stimuli):
-        #units in milisecond
+        #Will return a numpy array with 29x2 size that shows rest block start at the
+        #first column and the end of rest block as the second column
+        
+        #units in milisecond from /data/about.txt file
         isi = 1400
         stimulus_duration = 1000
         instructions = 6000
         number_of_rest_blocks = len(normalised_all_stimuli) - 1
         rest_start_stop = np.zeros((29, 2))
-        for i in range(0, number_of_rest_blocks):
-            current_block = normalised_all_stimuli[i]
+        for i in range(0, number_of_rest_blocks): current_block = normalised_all_stimuli[i]
             next_block = normalised_all_stimuli[i + 1]
-            last_stimuli_current_block = current_block[10, 1]
-            first_stimuli_next_block = next_block[1, 1]
-            end_of_current_block = last_stimuli_current_block + stimulus_duration
+            last_stimuli_current_block = current_block[9, 1]
+            first_stimuli_next_block = next_block[0, 1]
+            end_of_current_block = last_stimuli_current_block + stimulus_duration + isi
             rest_start = end_of_current_block
             start_of_next_block = first_stimuli_next_block - instructions
             rest_stop = start_of_next_block
-            rest_start_stop[i, 0] = 
+            #first colum is start of the rest block
+            rest_start_stop[i, 0] = rest_start
+            #second column is end of the rest block
+            rest_start_stop[i, 1] = rest_stop
+        return rest_start_stop
+            
 
     
     
