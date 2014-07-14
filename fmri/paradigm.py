@@ -355,18 +355,39 @@ class read(object):
         reaction_time = subject_response_time - stimulus_onset
         return reaction_time
 
-def plotter(performance_result, task_order):
-    fig = plt.figure(figsize = (20, 15))
+def plotter(performance_result, task_order, path):
+    fig = plt.figure(figsize = (20, 20))
+    one_back_runs = 0
+    two_back_runs = 0 
+    measures = ('TP', 'TN', 'FP', 'FN')
+    colors = ['r','g','y','b']
+
+    y_pos = np.arange(4)
     for i in range(0, len(task_order)):
         if task_order[i] == 1 or task_order[i] == 2:
-            f =  fig.add_subplot(2, 10, i + 1)
-            measures = ('TP', 'TN', 'FP', 'FN')
-            y_pos = np.arange(4)
-            performance = np.array([TP, TN, FP, FN])
-            colors = ['r','g','y','b']
+            task_name = '%d-back' % (int(task_order[i]))
+            if task_name == '1-back:
+                one_back_runs =+ 1
+                f =  fig.add_subplot(2, 10, one_back_runs)
+            elif task_name == '2-back:
+                two_back_runs =+ 1
+                f =  fig.add_subplot(2, 10, two_back_runs + 10)
+            
+            TP = performance_result[0]            
+            TN = performance_result[1]
+            FN = performance_result[2]
+            FP = performance_result[3]
+            performance = np.array([TP, TN, FN, FP])
             plt.barh(y_pos, performance,  align='center', alpha=0.4, 
                     color = colors)
             plt.yticks(y_pos, measures)
             plt.xlabel('Performance')
             plt.title('1-back run 2')
             plt.show()
+            png_file = fmri_plot + '.png'
+            path = os.path.join(path, png_file) 
+            savefig(path, dpi = 50)
+            plt.close()
+            plt.clf()
+            plt.cla()
+    return None
