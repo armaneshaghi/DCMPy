@@ -47,10 +47,13 @@ class read(object):
             elif n_back_type == 0:
                 TP, TN, FN, FP, RT = 0, 0, 0, 0, [0]
             performance_result.append([TP, TN, FN, FP, RT])
-
+        #first volume at
         scan_start = self.__scanStart__(logContent)
+        #normalise times with respect to the first scan
         normalised_all_stimuli = normalised_all_stimuli(all_stimuli, scan_start) 
+        #caculating start and end of each rest block
         rest_start_stop = self.__restBlockAnalyzer__(normalised_all_stimuli)
+        #preparing freesurfer paradigm files
         fsfast = self.__fsfastCondition__(normalised_all_stimuli,
                 task_order, rest_start_stop)
         #creating a new paradigm file with .par extension
@@ -67,11 +70,22 @@ class read(object):
                         duration, weight, name_of_condition))
             text.close()
         
-
+        reaction_times_file = os.path.join(path, 'rt.csv')
+        with open(reaction_times_file, 'w') as text:
+            for row_number, row in enumerate(performance_result):
+                task = task_order[row_number]
+                if row_number == 0:
+                    text.write('task,RT\n')
+                rt = row[5]
+                text.write('%d, %d' %(task,rt))
+            text.close()
+        plotter(performance_result, task_order, path)
         #normalising all times with respect to time of acquisition of
         #the first scan and then calculate times for rest block
+        #also plotting performance, performance result is a list 
+        #with length of 30
 
-    #TP, TN, FN, FP, RT
+
     def __fsfastWriter__(self, normalised_all_stimuli, task_order,\
             rest_start_stop):
  
@@ -359,35 +373,36 @@ def plotter(performance_result, task_order, path):
     fig = plt.figure(figsize = (20, 20))
     one_back_runs = 0
     two_back_runs = 0 
-    measures = ('TP', 'TN', 'FP', 'FN')
+    measures = ['TP', 'TN', 'FP', 'FN']
     colors = ['r','g','y','b']
-
     y_pos = np.arange(4)
     for i in range(0, len(task_order)):
         if task_order[i] == 1 or task_order[i] == 2:
             task_name = '%d-back' % (int(task_order[i]))
-            if task_name == '1-back:
+            if task_name == '1-back':
                 one_back_runs =+ 1
+                run_number = one_back_runs
                 f =  fig.add_subplot(2, 10, one_back_runs)
-            elif task_name == '2-back:
+            elif task_name == '2-back':
                 two_back_runs =+ 1
+                run_number = two_back_runs
                 f =  fig.add_subplot(2, 10, two_back_runs + 10)
-            
-            TP = performance_result[0]            
-            TN = performance_result[1]
-            FN = performance_result[2]
-            FP = performance_result[3]
+            row = performance_result[i]
+            TP = row[0]            
+            TN = row[1]
+            FN = row[2]
+            FP = row[3]
             performance = np.array([TP, TN, FN, FP])
             plt.barh(y_pos, performance,  align='center', alpha=0.4, 
                     color = colors)
             plt.yticks(y_pos, measures)
             plt.xlabel('Performance')
-            plt.title('1-back run 2')
+            plt.title('%s run %d' %(task_name, run_number)
             plt.show()
-            png_file = fmri_plot + '.png'
-            path = os.path.join(path, png_file) 
-            savefig(path, dpi = 50)
-            plt.close()
-            plt.clf()
-            plt.cla()
+    png_file = fmri_plot + '.png'
+    path = os.path.join(path, png_file) 
+    savefig(path, dpi = 50)
+    plt.close()
+    plt.clf()
+    plt.cla()
     return None
