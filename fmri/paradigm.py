@@ -2,6 +2,10 @@ import os
 import glob
 import re
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import figure
+
 class read(object):
     def __init__(self, path):
         self.path = path
@@ -30,7 +34,6 @@ class read(object):
         #performance measures are only calculated for 1 and 2 back
         #thus measures for 0-back blocks are only zeros (see below). 
         performance_result = list()
-        all_stimuli
         for block_number, stimuli in enumerate(all_stimuli):
             n_back_type = int(task_order[block_number])
             if n_back_type == 1:
@@ -43,8 +46,8 @@ class read(object):
                             hits, logContent)
             elif n_back_type == 0:
                 TP, TN, FN, FP, RT = 0, 0, 0, 0, [0]
-            
             performance_result.append([TP, TN, FN, FP, RT])
+
         scan_start = self.__scanStart__(logContent)
         normalised_all_stimuli = normalised_all_stimuli(all_stimuli, scan_start) 
         rest_start_stop = self.__restBlockAnalyzer__(normalised_all_stimuli)
@@ -271,7 +274,6 @@ class read(object):
         return new_all_stimuli
     
     def __sensReactAnalyzer__(self, stimuli, hits, logContent):
- 
         TP = 0
         TN = 0
         FP = 0
@@ -354,4 +356,17 @@ class read(object):
         return reaction_time
 
 def plotter(performance_result, task_order):
-
+    fig = plt.figure(figsize = (20, 15))
+    for i in range(0, len(task_order)):
+        if task_order[i] == 1 or task_order[i] == 2:
+            f =  fig.add_subplot(2, 10, i + 1)
+            measures = ('TP', 'TN', 'FP', 'FN')
+            y_pos = np.arange(4)
+            performance = np.array([TP, TN, FP, FN])
+            colors = ['r','g','y','b']
+            plt.barh(y_pos, performance,  align='center', alpha=0.4, 
+                    color = colors)
+            plt.yticks(y_pos, measures)
+            plt.xlabel('Performance')
+            plt.title('1-back run 2')
+            plt.show()
