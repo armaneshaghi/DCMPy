@@ -2,7 +2,6 @@ import os
 import glob
 import re
 import numpy as np
-
 class read(object):
     def __init__(self, path):
         self.path = path
@@ -17,23 +16,61 @@ class read(object):
         self.log = log
         self.res = res
         return None
-    def __main__(self):
+
+    def __call__(self):
         logfile = self.log
         resfile = self.res
         #extracting each file's content
         logContent = self.__content_read__(logfile)
         resContent = self.__content_read__(resfile)
         #extracting blocks
-        all_stimuli, block_order = __blockResult__(resContent)
-        for block_number, block in enumerate(all_stimuli):
-            n_back_type = int(task_order[block_number]
-            if n_back_type =! 0:
-                
+        all_stimuli, task_order = __blockResult__(resContent)
+        #getting hits and reaction times for 1 and 2 back only
+        #performance result is a 30x5 numpy array that shows the
+        #performance measures are only calculated for 1 and 2 back
+        #thus measures for 0-back blocks are only zeros (see below). 
+        performance_result = list()
+        all_stimuli
+        for block_number, stimuli in enumerate(all_stimuli):
+            n_back_type = int(task_order[block_number])
+            if n_back_type == 1:
+                hits = self.__oneBack__(stimuli)
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, 
+                            hits, logContent)
+            elif n_back_type == 2:
+                hits = self.__twoBack__(stimuli)
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, 
+                            hits, logContent)
+            elif n_back_type == 0:
+                TP, TN, FN, FP, RT = 0, 0, 0, 0, [0]
+            
+            performance_result.append([TP, TN, FN, FP, RT])
+        scan_start = self.__scanStart__(logContent)
+        normalised_all_stimuli = normalised_all_stimuli(all_stimuli, scan_start) 
+        rest_start_stop = self.__restBlockAnalyzer__(normalised_all_stimuli)
+        fsfast = self.__fsfastCondition__(normalised_all_stimuli,
+                task_order, rest_start_stop)
+        #creating a new paradigm file with .par extension
+        path = self.path
+        paradigm_file = os.path.join(path, 'fsfast.par')
+        with open(paradigm_file, 'w') as text:
+            for row in fsfast:
+                block_onset = row[0]
+                numeric_id  = row[1]
+                duration = row[2]
+                weight = row[3]
+                name_of_condition = row[4]
+                text.write('%d %d %d %d %s\n' %(block_number, numeric_id, 
+                        duration, weight, name_of_condition))
+            text.close()
+        
 
-        #
+        #normalising all times with respect to time of acquisition of
+        #the first scan and then calculate times for rest block
 
-
-    def __fsfastWriter__(self, normalised_all_stimuli, task_order):
+    #TP, TN, FN, FP, RT
+    def __fsfastWriter__(self, normalised_all_stimuli, task_order,\
+            rest_start_stop):
  
         '''
         FSFAST paradigm file requires at least 3 columns:
@@ -49,10 +86,9 @@ class read(object):
         fsfast=list()
         isi = 1400               
         stimulus_duration = 1000
-        for block_number, block in enumerate(normalised_all_stimuli,
-            task_order, rest_start_stop):
+        for block_number, block in enumerate(normalised_all_stimuli):
             n_back_type = task_order[block_number]
-            weight, numeric_id, name_of_condition = __fsfastCondition__(n_back_type)
+            weight, numeric_id, name_of_condition = self.__fsfastCondition__(n_back_type)
             #block duration is the difference between last and first stimuli added to 
             #the time that last stimuli is still on the screen (stimulus duration and isi)
             first_stimulus_onset = block[0,1]
@@ -67,14 +103,17 @@ class read(object):
             last_index = len(normalised_all_stimuli) - 1
             #adding rest block, the very last block does not come with a rest, hence '!='
             if block_number != last_index:
-                
-
-
-
-            
-            
- 
-    def __fsfastCondition__(n_back_type):
+                block_onset = rest_start_stop[block_number, 0]
+                block_end = rest_start_stop[block_number, 1]
+                duration = block_end - block_onset
+                numeric_id = 0
+                weight = 0
+                name_of_condition = 'NULL'
+                row = [block_onset, numeric_id, duration, weight, name_of_condition]
+                row_temporary = row[:]
+                fsfast.append(row_temporary)
+        return fsfast
+    def __fsfastCondition__(self, n_back_type):
         if n_back_type == 0:
             weight = 1
             numeric_id = 1
@@ -83,7 +122,7 @@ class read(object):
             weight = 2
             numeric_id = 2
             name_of_condition = '1-back'
-        elif n_back_type = 2:
+        elif n_back_type == 2:
             weight = 3
             numeric_id = 3
             name_of_condition = '2-back'
@@ -232,7 +271,7 @@ class read(object):
         return new_all_stimuli
     
     def __sensReactAnalyzer__(self, stimuli, hits, logContent):
-        
+ 
         TP = 0
         TN = 0
         FP = 0
@@ -251,7 +290,7 @@ class read(object):
                     #second column from each block of stimuli numpy array 
                     #represents the stimuli onset
                     stimulus_onset = stimuli[i, 1]
-                    reaction_time = __reactionTimer__(logContent, stimulus_onset)
+                    reaction_time = self.__reactionTimer__(logContent, stimulus_onset)
                     reaction_time_list.append(reaction_time)
                 #subject does not press the button
                 if subHit != 1:
@@ -275,7 +314,8 @@ class read(object):
         instructions = 6000
         number_of_rest_blocks = len(normalised_all_stimuli) - 1
         rest_start_stop = np.zeros((29, 2))
-        for i in range(0, number_of_rest_blocks): current_block = normalised_all_stimuli[i]
+        for i in range(0, number_of_rest_blocks): 
+            current_block = normalised_all_stimuli[i]
             next_block = normalised_all_stimuli[i + 1]
             last_stimuli_current_block = current_block[9, 1]
             first_stimuli_next_block = next_block[0, 1]
@@ -289,10 +329,8 @@ class read(object):
             rest_start_stop[i, 1] = rest_stop
         return rest_start_stop
             
-
-    
-    
-    def __reactionTimer__(log_content, stimulus_onset):
+ 
+    def __reactionTimer__(self, log_content, stimulus_onset):
         #SO: stimulus onset extracted from res files
         reg_ex_pat = ".*presented at time %d\\r\\n" %(stimulus_onset)
         reg_ex_pat = re.compile(reg_ex_pat)
@@ -315,4 +353,5 @@ class read(object):
         reaction_time = subject_response_time - stimulus_onset
         return reaction_time
 
+def plotter(performance_result, task_order):
 
