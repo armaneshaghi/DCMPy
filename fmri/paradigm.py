@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import figure
-
+import matplotlib.pyplot as plt
 class read(object):
     def __init__(self, path):
         self.path = path
@@ -16,9 +16,9 @@ class read(object):
         res = glob.glob(os.path.join(self.path, '*.res'))
         if len(res) != 1:
             print '%s more than one res or res non-existent' %(self.path)
-
-        self.log = log
-        self.res = res
+            raise RuntimeError
+        self.log = log[0]
+        self.res = res[0]
         return None
 
     def __call__(self):
@@ -28,7 +28,7 @@ class read(object):
         logContent = self.__content_read__(logfile)
         resContent = self.__content_read__(resfile)
         #extracting blocks
-        all_stimuli, task_order = __blockResult__(resContent)
+        all_stimuli, task_order = self.__blockResult__(resContent)
         #getting hits and reaction times for 1 and 2 back only
         #performance result is a 30x5 numpy array that shows the
         #performance measures are only calculated for 1 and 2 back
@@ -38,11 +38,11 @@ class read(object):
             n_back_type = int(task_order[block_number])
             if n_back_type == 1:
                 hits = self.__oneBack__(stimuli)
-                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, 
-                            hits, logContent)
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, task_order, 
+                          hits, logContent)
             elif n_back_type == 2:
                 hits = self.__twoBack__(stimuli)
-                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, 
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, task_order,
                             hits, logContent)
             elif n_back_type == 0:
                 TP, TN, FN, FP, RT = 0, 0, 0, 0, [0]
@@ -69,7 +69,7 @@ class read(object):
                 text.write('%d %d %d %d %s\n' %(block_number, numeric_id, 
                         duration, weight, name_of_condition))
             text.close()
-        
+
         reaction_times_file = os.path.join(path, 'rt.csv')
         with open(reaction_times_file, 'w') as text:
             for row_number, row in enumerate(performance_result):
@@ -84,6 +84,7 @@ class read(object):
         #the first scan and then calculate times for rest block
         #also plotting performance, performance result is a list 
         #with length of 30
+        return reaction_times_file, paradigm_file
 
 
     def __fsfastWriter__(self, normalised_all_stimuli, task_order,\
@@ -287,7 +288,8 @@ class read(object):
             new_all_stimuli.append(temp_array)
         return new_all_stimuli
     
-    def __sensReactAnalyzer__(self, stimuli, hits, logContent):
+    def __sensReactAnalyzer__(self, stimuli,n_back_type, run_number,
+            hits, logContent):
         TP = 0
         TN = 0
         FP = 0
@@ -295,8 +297,9 @@ class read(object):
         firstHit = hits[0]
         secondHit = hits[1]
         reaction_time_list = list()
+        run_numbers = self.__runfinder__(task_order)
         for i in range(0, 10): 
-            subHit = sitmuli[i, 2]
+            subHit = stimuli[i, 2]
             #it is a true hit
             if i == firstHit or i == secondHit:
                 #subject presses button
@@ -306,7 +309,9 @@ class read(object):
                     #second column from each block of stimuli numpy array 
                     #represents the stimuli onset
                     stimulus_onset = stimuli[i, 1]
-                    reaction_time = self.__reactionTimer__(logContent, stimulus_onset)
+                    trial_number = i
+                    reaction_time = self.__reactionTimer__(logContent, run_number, n_back_type, trial_number,
+                            stimulus_onset)
                     reaction_time_list.append(reaction_time)
                 #subject does not press the button
                 if subHit != 1:
@@ -318,8 +323,37 @@ class read(object):
             #it is not a hit and subject hits the button
             elif subHit == 1:
                  FP += 1
-        return TP, TN, FN, FP, reaction_time
+        return TP, TN, FN, FP, reaction_time_list
     
+    def __runfinder__(self, task_order):
+        #returns a numpy array of 30 by 1, at each 
+        #row it indicates the number of runs the corresponding
+        #row from task_order have been repeated
+        #number of one back runs
+        one_run = 0
+        #number of two back runs
+        two_run = 0
+        zero_run = 0
+        run_numbers = np.zeros((30,1))
+        for item_number, item in enumerate(task_order):
+            if item ==  1:
+                one_run += 1
+                run_numbers[item_number, 1] = one_run
+            elif item == 2:
+                two_run += 1
+                run_numbers[item_number, 1] = two_run
+            elif item == 0:
+                zero_run += 1
+                run_numbers[item_number, 1] = zero_run
+        return run_numbers
+
+    def __taskfinder__(self,all):
+        #return trial number, run number and type of n-back
+        #first type of n back
+        
+        #number of run
+        
+
     def __restBlockAnalyzer__(self, normalised_all_stimuli):
         #Will return a numpy array with 29x2 size that shows rest block start at the
         #first column and the end of rest block as the second column
@@ -346,9 +380,11 @@ class read(object):
         return rest_start_stop
             
  
-    def __reactionTimer__(self, log_content, stimulus_onset):
+    def __reactionTimer__(self, log_content, run_number, trial_number,
+            n_back_type, stimulus_onset):
         #SO: stimulus onset extracted from res files
-        reg_ex_pat = ".*presented at time %d\\r\\n" %(stimulus_onset)
+        reg_ex_pat = ".*start of %d-back run number %d trial number %d at slice number \d+ at time \d+\\r\\n" %(
+                n_back_type,run_number,trial_number)
         reg_ex_pat = re.compile(reg_ex_pat)
         #first we find the stimulus presentation in log file
         #using stimulus onset time extracted from res file
@@ -357,6 +393,8 @@ class read(object):
             if stimulus_pres_log is not None:
                 presentation_line = line_number
                 break
+        if not presentation_line:
+            raise Exception('stimulus onset pattern cannot be found')
         #now that we have line number, starting from stimulus presentation
         #time, we search for the time subject hit the button
         subject_response_pat = ".*\\tKey\\t28\\tDOWN\\tat\\t(\d*)\s*\\r\\n"
@@ -397,7 +435,7 @@ def plotter(performance_result, task_order, path):
                     color = colors)
             plt.yticks(y_pos, measures)
             plt.xlabel('Performance')
-            plt.title('%s run %d' %(task_name, run_number)
+            plt.title('%s run %d' %(task_name, run_number))
             plt.show()
     png_file = fmri_plot + '.png'
     path = os.path.join(path, png_file) 
