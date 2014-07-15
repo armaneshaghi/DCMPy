@@ -6,6 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import figure
 import matplotlib.pyplot as plt
+from pylab import *
 class read(object):
     def __init__(self, path):
         self.path = path
@@ -29,6 +30,7 @@ class read(object):
         resContent = self.__content_read__(resfile)
         #extracting blocks
         all_stimuli, task_order = self.__blockResult__(resContent)
+        run_numbers = self.__runfinder__(task_order)
         #getting hits and reaction times for 1 and 2 back only
         #performance result is a 30x5 numpy array that shows the
         #performance measures are only calculated for 1 and 2 back
@@ -36,25 +38,26 @@ class read(object):
         performance_result = list()
         for block_number, stimuli in enumerate(all_stimuli):
             n_back_type = int(task_order[block_number])
+            run_number = int(run_numbers[block_number])
             if n_back_type == 1:
                 hits = self.__oneBack__(stimuli)
-                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, task_order, 
-                          hits, logContent)
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, n_back_type, 
+                          run_number, hits, logContent)
             elif n_back_type == 2:
                 hits = self.__twoBack__(stimuli)
-                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, task_order,
-                            hits, logContent)
+                TP, TN, FN, FP, RT = self.__sensReactAnalyzer__(stimuli, n_back_type,
+                            run_number, hits, logContent)
             elif n_back_type == 0:
                 TP, TN, FN, FP, RT = 0, 0, 0, 0, [0]
             performance_result.append([TP, TN, FN, FP, RT])
         #first volume at
         scan_start = self.__scanStart__(logContent)
         #normalise times with respect to the first scan
-        normalised_all_stimuli = normalised_all_stimuli(all_stimuli, scan_start) 
+        normalised_all_stimuli = self.__normalisedTime__(all_stimuli, scan_start) 
         #caculating start and end of each rest block
         rest_start_stop = self.__restBlockAnalyzer__(normalised_all_stimuli)
         #preparing freesurfer paradigm files
-        fsfast = self.__fsfastCondition__(normalised_all_stimuli,
+        fsfast = self.__fsfastWriter__(normalised_all_stimuli,
                 task_order, rest_start_stop)
         #creating a new paradigm file with .par extension
         path = self.path
@@ -66,18 +69,29 @@ class read(object):
                 duration = row[2]
                 weight = row[3]
                 name_of_condition = row[4]
-                text.write('%d %d %d %d %s\n' %(block_number, numeric_id, 
+                #freesurfer need everything in seconds not miliseconds
+                block_onset = double(block_onset) / 1000.
+                duration = double(duration) / 1000.
+                text.write('%.3f %d %.3f %d %s\n' %(block_onset, numeric_id, 
                         duration, weight, name_of_condition))
             text.close()
 
         reaction_times_file = os.path.join(path, 'rt.csv')
         with open(reaction_times_file, 'w') as text:
+            text.write('task,RT\n')
             for row_number, row in enumerate(performance_result):
-                task = task_order[row_number]
-                if row_number == 0:
-                    text.write('task,RT\n')
-                rt = row[5]
-                text.write('%d, %d' %(task,rt))
+                task = task_order[row_number, 0]
+                rt = row[4]
+                #if it's zero back
+                if task == 0:
+                    text.write('%d,0\n' %(task))
+                #if it's one or two back
+                else:
+                    subHits = len(rt)
+                    if subHits == 1:
+                        text.write('%d,%d\n' %(task,rt[0]))
+                    elif subHits == 2:
+                        text.write('%d,%d,%d\n' %(task,rt[0], rt[1]))
             text.close()
         plotter(performance_result, task_order, path)
         #normalising all times with respect to time of acquisition of
@@ -87,7 +101,7 @@ class read(object):
         return reaction_times_file, paradigm_file
 
 
-    def __fsfastWriter__(self, normalised_all_stimuli, task_order,\
+    def __fsfastWriter__(self, normalised_all_stimuli, task_order,
             rest_start_stop):
  
         '''
@@ -288,7 +302,7 @@ class read(object):
             new_all_stimuli.append(temp_array)
         return new_all_stimuli
     
-    def __sensReactAnalyzer__(self, stimuli,n_back_type, run_number,
+    def __sensReactAnalyzer__(self, stimuli, n_back_type, run_number,
             hits, logContent):
         TP = 0
         TN = 0
@@ -297,7 +311,6 @@ class read(object):
         firstHit = hits[0]
         secondHit = hits[1]
         reaction_time_list = list()
-        run_numbers = self.__runfinder__(task_order)
         for i in range(0, 10): 
             subHit = stimuli[i, 2]
             #it is a true hit
@@ -338,21 +351,15 @@ class read(object):
         for item_number, item in enumerate(task_order):
             if item ==  1:
                 one_run += 1
-                run_numbers[item_number, 1] = one_run
+                run_numbers[item_number, 0] = one_run
             elif item == 2:
                 two_run += 1
-                run_numbers[item_number, 1] = two_run
+                run_numbers[item_number, 0] = two_run
             elif item == 0:
                 zero_run += 1
-                run_numbers[item_number, 1] = zero_run
+                run_numbers[item_number, 0] = zero_run
         return run_numbers
 
-    def __taskfinder__(self,all):
-        #return trial number, run number and type of n-back
-        #first type of n back
-        
-        #number of run
-        
 
     def __restBlockAnalyzer__(self, normalised_all_stimuli):
         #Will return a numpy array with 29x2 size that shows rest block start at the
@@ -380,11 +387,11 @@ class read(object):
         return rest_start_stop
             
  
-    def __reactionTimer__(self, log_content, run_number, trial_number,
-            n_back_type, stimulus_onset):
+    def __reactionTimer__(self, log_content, run_number, n_back_type,
+            trial_number, stimulus_onset):
         #SO: stimulus onset extracted from res files
         reg_ex_pat = ".*start of %d-back run number %d trial number %d at slice number \d+ at time \d+\\r\\n" %(
-                n_back_type,run_number,trial_number)
+                n_back_type, run_number, trial_number)
         reg_ex_pat = re.compile(reg_ex_pat)
         #first we find the stimulus presentation in log file
         #using stimulus onset time extracted from res file
@@ -437,7 +444,7 @@ def plotter(performance_result, task_order, path):
             plt.xlabel('Performance')
             plt.title('%s run %d' %(task_name, run_number))
             plt.show()
-    png_file = fmri_plot + '.png'
+    png_file = 'fmri_plot' + '.png'
     path = os.path.join(path, png_file) 
     savefig(path, dpi = 50)
     plt.close()
