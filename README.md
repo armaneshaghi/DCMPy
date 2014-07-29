@@ -6,6 +6,5 @@ Longitudinal surface based DCM tools
 Dynamic causal modeling or DCM is a way to analyse effective connectivity in time-series data
 acquired from the brain. 
 
-Please note this project is changing constantly, is still un-released and I can not guarantee 
-the module's proper performance before its first release. 
-
+__Please note this project is changing constantly, is still un-released and I can not guarantee 
+the module's proper performance before its first release. The project is intended to be finalized by first half of 2015. Thanks in advance for your patience!__
