@@ -287,11 +287,10 @@ class FS(object):
         return self
 
 #work in progress
+'''
 ge(subject_list, index_path):
-    '''
     index_path = path for index.html file
     subject list: list of strings
-    '''
     with open(index_path, 'w') as html:
         html.write('<html lang="en-US">\n<head>\n<title>FS QA</title>\
         </head><body>\n')
@@ -303,3 +302,4 @@ ge(subject_list, index_path):
             if i == (len(subject_list)-1):
                 html.write('</body></html>')
         html.close()
+'''

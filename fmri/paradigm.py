@@ -100,10 +100,8 @@ class read(object):
         #with length of 30
         return reaction_times_file, paradigm_file
 
-
     def __fsfastWriter__(self, normalised_all_stimuli, task_order,
             rest_start_stop):
- 
         '''
         FSFAST paradigm file requires at least 3 columns:
         1. onset of condition
@@ -193,10 +191,10 @@ class read(object):
         nextStartLine = logContent[nextStartLineIndex]
         experiment_start = re.search('(\d{3,})\s+\\r\\n$', startLine)
         experiment_start = experiment_start.group(1)
-        experiment_start_next = re.search('(\d{3,})\s+\\r\\n$', nextStartLine)
-        experiment_start_next = experiment_start_next.group(1)
-        if experiment_start != experiment_start_next:
-            raise Exception('ill-posed log file')
+        #experiment_start_next = re.search('(\d{3,})\s+\\r\\n$', nextStartLine)
+        #experiment_start_next = experiment_start_next.group(1)
+        #if experiment_start != experiment_start_next:
+        #    raise Exception('ill-posed log file')
         return int(experiment_start)
  
  
@@ -206,7 +204,6 @@ class read(object):
         #list of two integers that are
         #INDICES of hits
         hits = [None] * 2 #1 is hit, zero not hit
- 
         for i in range(0, 10):
             current_stimuli = stimuli[i, 0]
             if i == 0:
@@ -250,7 +247,6 @@ class read(object):
         #stimuli, 2) time of presentation 3) whether
         #the subject hit the button (1 = Hit)
         stimuli = np.zeros((10, 3), dtype=np.int)
- 
         n_backPat = re.compile("'(\d)-back'\s*.*")
         stimulus_pat = re.compile("'{0,1}(\d)'{0,1}\\t(\d{3,})\\t(\d{1,2})\\t-{0,1}\d*\\t\\n")
         #all_stimuli will contain list of 10x3 numpy array corresponding to 
@@ -265,7 +261,6 @@ class read(object):
                     if n_back_search is not None:
                         n_back_type = int(n_back_search.group(1)) 
                         task_order[i] = n_back_type
- 
                     else:
                         raise Exception("cannot understand block"
                                 " result's first line")
@@ -286,7 +281,7 @@ class read(object):
             temp_stimuli = np.copy(stimuli)
             all_stimuli.append(temp_stimuli)
         return all_stimuli, task_order
-    
+
     def __normalisedTime__(self, all_stimuli, scan_start):
         #normaly all times are calculated from the start of 
         #cogent, here we calculate times since the very first 
@@ -301,7 +296,7 @@ class read(object):
             temp_array = np.copy(array)
             new_all_stimuli.append(temp_array)
         return new_all_stimuli
-    
+
     def __sensReactAnalyzer__(self, stimuli, n_back_type, run_number,
             hits, logContent):
         TP = 0
@@ -337,7 +332,7 @@ class read(object):
             elif subHit == 1:
                  FP += 1
         return TP, TN, FN, FP, reaction_time_list
-    
+
     def __runfinder__(self, task_order):
         #returns a numpy array of 30 by 1, at each 
         #row it indicates the number of runs the corresponding
@@ -359,7 +354,6 @@ class read(object):
                 zero_run += 1
                 run_numbers[item_number, 0] = zero_run
         return run_numbers
-
 
     def __restBlockAnalyzer__(self, normalised_all_stimuli):
         #Will return a numpy array with 29x2 size that shows rest block start at the
@@ -385,7 +379,6 @@ class read(object):
             #second column is end of the rest block
             rest_start_stop[i, 1] = rest_stop
         return rest_start_stop
-            
  
     def __reactionTimer__(self, log_content, run_number, n_back_type,
             trial_number, stimulus_onset):
@@ -425,11 +418,11 @@ def plotter(performance_result, task_order, path):
         if task_order[i] == 1 or task_order[i] == 2:
             task_name = '%d-back' % (int(task_order[i]))
             if task_name == '1-back':
-                one_back_runs =+ 1
+                one_back_runs += 1
                 run_number = one_back_runs
                 f =  fig.add_subplot(2, 10, one_back_runs)
             elif task_name == '2-back':
-                two_back_runs =+ 1
+                two_back_runs += 1
                 run_number = two_back_runs
                 f =  fig.add_subplot(2, 10, two_back_runs + 10)
             row = performance_result[i]

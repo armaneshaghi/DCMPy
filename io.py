@@ -161,8 +161,14 @@ class IOcogpy(IOBase):
             else:
                 template = os.path.abspath(template)
             
-            template  = template % (tp, group, key, pid,
-                    key, tp, pid)
+            if (('concatenated_fmri.nii.gz' not in template) and ('filled_t1' not in template)):
+                template  = template % (tp, group, key, pid,
+                          key, tp, pid)
+            elif 'concatenated_fmri.nii.gz' in template:
+                template = template % (tp, group, key, pid)
+            elif 'filled_t1' in template:
+                template = template  %( tp, group, pid, tp, 
+                        group, pid, tp, pid)
             filelist = glob.glob(template)
             if len(filelist) == 0:
                 msg = 'output key: %s template: %s returned no files' % (
@@ -181,4 +187,31 @@ class IOcogpy(IOBase):
                 outputs[key] = None
             elif len(outputs[key]) == 1:
                 outputs[key] = outputs[key][0]
+        return outputs
+
+class transListInputSpec(BaseInterfaceInputSpec):
+    affine = File(exists = True, desc = 'affine')
+    warp = File(exists = True,  desc = 'warp')
+    
+
+class transListOutputSpec(TraitedSpec):
+    transformation_list = traits.List(mandatory = True, 
+                                        desc = 'transformation list')
+
+class transList(BaseInterface): 
+    output_spec = transListOutputSpec
+    input_spec = transListInputSpec
+
+    def _gen_outlist(self):
+        affine = self.inputs.affine
+        warp = self.inputs.warp
+        transformation_list = [affine, warp]
+        return transformation_list
+
+    def _run_interface(self, runtime):
+        return runtime
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        outputs['transformation_list'] = self._gen_outlist()
         return outputs
