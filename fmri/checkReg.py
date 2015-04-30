@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 import subprocess
 
 def fsfastCheck(subject, average = 'fsaverage',
-            fsfastDir, volume_path, register_path):
+            fsfastDir, volume_path, register_path,
+            slices):
     """
     Quality assurance of each subject's functional
     MRI time series to the average template. Usually is run
@@ -27,10 +28,13 @@ def fsfastCheck(subject, average = 'fsaverage',
     data with preproc-sess.
     
     volume_path = FMRI volume on which surfaces will be projected for 
-    visualization (string).
+    visualization (string). Usually from fsfast directory.
 
     register_path = register.dat file produced by tkregister during
     within subject intermodality registration (6dof in fsfast)
+
+    slices = numpy array of n by 3 slices in 3 directions of axial
+    sagital and coronal.
    """ 
 
    FSHome = os.environ['FREESURFER_HOME']
@@ -41,10 +45,6 @@ def fsfastCheck(subject, average = 'fsaverage',
 
    response = response.split()
    vox2ras = np.zeros((4,4))
-
-   volume = nb.load(volume_path)
-   volumeData = volume.get_data()
-   volumeMean = np.mean(volumeData, axis = 3)
 
    for i in range(0, 4):
        for j in range(0, 4):
@@ -78,14 +78,23 @@ def fsfastCheck(subject, average = 'fsaverage',
    rhWm = os.path.join(subject_dir, 'rh.white')
    lhWm = os.path.join(subject_dir, 'lh.white')
 
-   slices = self.slices
-   path = self.path
    #projecting surface to volume
-   lhPialD = self._surfaceMask(volume = orig, surface_file = lhPial)
-   rhPialD = self._surfaceMask(volume = orig, surface_file = rhPial)
-   lhWmD = self._surfaceMask(volume = orig, surface_file = lhWm)
-   rhWmD = self._surfaceMask(volume = orig, surface_file = rhWm)
-   orig_data = nb.load(orig).get_data()
+   lhPialD = surface_mask_fsfast(volume = volume_path,
+           surface = lhPial,
+           regMatrix = regMatrix)
+
+   rhPialD = surface_mask_fsfast(volume = volume_path,
+           surface = rhPial,
+           regMatrix = regMatrix)
+
+   lhWmD = surface_mask_fsfast(volume = volume_path,
+           surface = lhWm,
+           regMatrix = regMatrix)
+
+   rhWmD =  surface_mask_fsfast(volume = volume_path,
+           surface = rhWm,
+           regMatrix = regMatrix)
+
    totSlices = slices.shape[0] + slices.shape[1]
    rows = np.round(totSlices/2)
    columns  = totSlices - rows
@@ -94,44 +103,45 @@ def fsfastCheck(subject, average = 'fsaverage',
    sagitalSlices = slices[:, 1]
    coronalSlices = slices[:, 2]
    
-   #averaging fmri time series over the 4th dimension
-   volumeMean = np.zeros(volumeMean.shape)
-   
    #plotting surface vertices on the mean volume
    figNo = 0
    width = columns * 20
    height = rows * 20
    fig = plt.figure(figsize = (width, height))
+   #we need images in form of data from nibabel
+   volumeData = nb.load(volume_path)
+   volumeData = volumeData.get_data()
+
    for slice in axialSlices:
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
-       fig.suptitle('%s' %(subId), fontsize=35, fontweight='bold')
+       fig.suptitle('%s' %(subject_name), fontsize=35, fontweight='bold')
        #drawing main volume
-       self._axialShow(data = orig_data, slice = slice)
+       _axialShow(data = orig_data, slice = slice)
        #drawing overlays: lh
-       self._axialShow(data = lhPialD, slice = slice, overlay = True,
+       _axialShow(data = lhPialD, slice = slice, overlay = True,
                surface = 'pial')
-       self._axialShow(data = lhWmD, slice = slice, overlay = True, 
+       _axialShow(data = lhWmD, slice = slice, overlay = True, 
                surface = 'wm')
        #drawing overlays: rh
-       self._axialShow(data = rhPialD, slice = slice, overlay = True,
+       _axialShow(data = rhPialD, slice = slice, overlay = True,
                surface = 'pial')
-       self._axialShow(data = rhWmD, slice = slice, overlay = True, 
+       _axialShow(data = rhWmD, slice = slice, overlay = True, 
                surface = 'wm')
    for slice in coronalSlices:
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
        #drawing main volume
-       self._coronalShow(data = orig_data, slice = slice)
+       _coronalShow(data = orig_data, slice = slice)
        #drawing overlays: lh
-       self._coronalShow(data = lhPialD, slice = slice, overlay = True,
+       _coronalShow(data = lhPialD, slice = slice, overlay = True,
                surface = 'pial')
-       self._coronalShow(data = lhWmD, slice = slice, overlay = True, 
+       _coronalShow(data = lhWmD, slice = slice, overlay = True, 
                surface = 'wm')
        #drawing overlays: rh
-       self._coronalShow(data = rhPialD, slice = slice, overlay = True,
+       _coronalShow(data = rhPialD, slice = slice, overlay = True,
                surface = 'pial')
-       self._coronalShow(data = rhWmD, slice = slice, overlay = True, 
+       _coronalShow(data = rhWmD, slice = slice, overlay = True, 
                surface = 'wm')
 
 
@@ -139,17 +149,15 @@ def fsfastCheck(subject, average = 'fsaverage',
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
        #drawing main volume
-       self._sagitalShow(data = orig_data, slice = slice)
+       _sagitalShow(data = orig_data, slice = slice)
        #drawing overlays: lh
-       self._sagitalShow(data = lhPialD, slice = slice, overlay = True,
+       _sagitalShow(data = lhPialD, slice = slice, overlay = True,
                 surface = 'pial')
-       self._sagitalShow(data = lhWmD, slice = slice, overlay = True, 
+       _sagitalShow(data = lhWmD, slice = slice, overlay = True,
                 surface = 'wm')
        #drawing overlays: rh
-       self._sagitalShow(data = rhPialD, slice = slice, overlay = True,
+       _sagitalShow(data = rhPialD, slice = slice, overlay = True,
                 surface = 'pial')
-       self._sagitalShow(data = rhWmD, slice = slice, overlay = True, 
-                surface = 'wm')
        
    png_file = subId + '.png'
    path = os.path.join(path, png_file) 
@@ -158,7 +166,8 @@ def fsfastCheck(subject, average = 'fsaverage',
    plt.clf()
    plt.cla()
 
-def surface_mask_fsfast(surface, regMatrix, invvox2ras ):
+def surface_mask_fsfast(surface, volume,
+        regMatrix, invvox2ras ):
    """
    Returns projected surface on as a mask (binary, values of 
    only 0 and 1), volume.
@@ -166,12 +175,19 @@ def surface_mask_fsfast(surface, regMatrix, invvox2ras ):
    Options:
 
    surface = path to surface file (pial, wm for example).
-   
+  
+   volume = path to volume (fmri volume for fsfast)
+
    regMatrix = affine tranformation matrix produced as part of
    fsfast or independently via tkregister. 
    
    invvox2ras = Inverse matrix of mri_info -vox2ras-tkr output
    """
+
+   volume = nb.load(volume_path)
+   volumeData = volume.get_data()
+   volumeMean = np.mean(volumeData, axis = 3)
+   newVol = np.zeros(volumeMean.shape)
 
    coords, faces = nb.freesurfer.read_geometry(surface)
    for i in range(0, coords.shape[0]):
