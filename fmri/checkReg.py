@@ -64,51 +64,35 @@ def fsfastCheck(subject, average = 'fsaverage',
            splitted = lines[i].split()
            for j in range(0, 4):
                reg[i, j] = float(splitted[j])
-   reg = np.matrix(reg)
+   #converting from numpy array to numpy matrix 
+   #for subsequent linear algebra analysis
+
+   regMatrix = np.matrix(reg)
    subjects_dir = os.environ["SUBJECTS_DIR"]
-   surface_rh = '{subjects_dir}/{subject}/surf/rh.pial'.format(
+   #subjects_dir and subject_dir are different!
+   subject_dir = '{subjects_dir}/{subject}/surf/'.format(
            subjects_dir = subjects_dir, subject = subject)
 
-   surface_lh = '{subjects_dir}/{subject}/surf/lh.pial'.format(
-           subjects_dir = subjects_dir, subject = subject)
+   rhPial = os.path.join(subject_dir, 'rh.pial')
+   lhPial = os.path.join(subject_dir, 'lh.pial')
+   rhWm = os.path.join(subject_dir, 'rh.white')
+   lhWm = os.path.join(subject_dir, 'lh.white')
 
-
-   coords, faces = nb.freesurfer.read_geometry(surface_rh)
-
-   for i in range(0, coords.shape[0]):
-       coordinates = coords[i,:]
-       R = coordinates[0]
-       A = coordinates[1]
-       S = coordinates[2]
-       RASmatrix = np.matrix([R, A, S, 1])
-       RASmatrixT = np.transpose(RASmatrix)
-       CRS = invvox2ras * reg * RASmatrixT
-       #by rounding
-       xVol = CRS[0,0]
-       yVol = CRS[1,0]
-       zVol = CRS[2,0]
-       xR = int(np.around(xVol))
-       yR = int(np.around(yVol))
-       zR = int(np.around(zVol))
-       newVol[xR, yR, zR]  = 1  
-
-   coords, faces = nb.freesurfer.read_geometry(surface_rh)
-   for i in range(0, coords.shape[0]):
-       coordinates = coords[i,:]
-       R = coordinates[0]
-       A = coordinates[1]
-       S = coordinates[2]
-       RASmatrix = np.matrix([R, A, S, 1])
-       RASmatrixT = np.transpose(RASmatrix)
-       CRS = invvox2ras * reg * RASmatrixT
-       #by rounding
-       xVol = CRS[0,0]
-       yVol = CRS[1,0]
-       zVol = CRS[2,0]
-       xR = int(np.around(xVol))
-       yR = int(np.around(yVol))
-       zR = int(np.around(zVol))
-       newVol[xR, yR, zR]  = 1  
+   slices = self.slices
+   path = self.path
+   #projecting surface to volume
+   lhPialD = self._surfaceMask(volume = orig, surface_file = lhPial)
+   rhPialD = self._surfaceMask(volume = orig, surface_file = rhPial)
+   lhWmD = self._surfaceMask(volume = orig, surface_file = lhWm)
+   rhWmD = self._surfaceMask(volume = orig, surface_file = rhWm)
+   orig_data = nb.load(orig).get_data()
+   totSlices = slices.shape[0] + slices.shape[1]
+   rows = np.round(totSlices/2)
+   columns  = totSlices - rows
+   #getting slice numbers for each view
+   axialSlices =  slices[:, 0]
+   sagitalSlices = slices[:, 1]
+   coronalSlices = slices[:, 2]
    
    #averaging fmri time series over the 4th dimension
    volumeMean = np.zeros(volumeMean.shape)
@@ -173,3 +157,38 @@ def fsfastCheck(subject, average = 'fsaverage',
    plt.close()
    plt.clf()
    plt.cla()
+
+def surface_mask_fsfast(surface, regMatrix, invvox2ras ):
+   """
+   Returns projected surface on as a mask (binary, values of 
+   only 0 and 1), volume.
+  
+   Options:
+
+   surface = path to surface file (pial, wm for example).
+   
+   regMatrix = affine tranformation matrix produced as part of
+   fsfast or independently via tkregister. 
+   
+   invvox2ras = Inverse matrix of mri_info -vox2ras-tkr output
+   """
+
+   coords, faces = nb.freesurfer.read_geometry(surface)
+   for i in range(0, coords.shape[0]):
+       coordinates = coords[i,:]
+       R = coordinates[0]
+       A = coordinates[1]
+       S = coordinates[2]
+       RASmatrix = np.matrix([R, A, S, 1])
+       RASmatrixT = np.transpose(RASmatrix)
+       CRS = invvox2ras * regMatrix * RASmatrixT
+       #by rounding
+       xVol = CRS[0,0]
+       yVol = CRS[1,0]
+       zVol = CRS[2,0]
+       xR = int(np.around(xVol))
+       yR = int(np.around(yVol))
+       zR = int(np.around(zVol))
+       newVol[xR, yR, zR]  = 1
+   return newVol
+
