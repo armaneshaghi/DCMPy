@@ -46,6 +46,12 @@ class FS(object):
         return self
 
     def _surfaceMask(self, volume, surface_file): 
+        '''
+        transfers RAS surface coordinates into
+        3d volume, CRS coordinates as a mask, where
+        suraface vertices are coloured as white (1).
+        '''
+
         volImg = nb.load(volume)
         #RAS to voxel affine transformation
         vox2ras = np.zeros((4,4))
