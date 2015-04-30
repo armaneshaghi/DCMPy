@@ -7,37 +7,37 @@ import subprocess
 def fsfastCheck(subject, average = 'fsaverage',
             fsfastDir, volume_path, register_path,
             slices):
-    """
-    Quality assurance of each subject's functional
-    MRI time series to the average template. Usually is run
-    after preprocessing with preproc-sess in Freesurfer to check 
-    whether registration between fmri volume and surfaces are correct.
+   """
+   Quality assurance of each subject's functional
+   MRI time series to the average template. Usually is run
+   after preprocessing with preproc-sess in Freesurfer to check 
+   whether registration between fmri volume and surfaces are correct.
     
-    Options:
+   Options:
+    
+   average = the average template (subject) one uses
+   for registartion, default is fsaverage. You need to 
+   change this value if you have used mri_make_average
+   to make a customized average subject out of freesurfer 
+   routine.
    
-    average = the average template (subject) one uses
-    for registartion, default is fsaverage. You need to 
-    change this value if you have used mri_make_average
-    to make a customized average subject out of freesurfer 
-    routine.
-    
-    subject = a  string value for subject name used during recon-all
-    and fsfast pre processing analysis (recon-all and preproc-sess)
-    
-    fsfastDir = directory for fsfast, whcih contains preprocessed 
-    data with preproc-sess.
-    
-    volume_path = FMRI volume on which surfaces will be projected for 
-    visualization (string). Usually from fsfast directory.
-
-    register_path = register.dat file produced by tkregister during
-    within subject intermodality registration (6dof in fsfast)
-
-    slices = numpy array of n by 3 slices in 3 directions of axial
-    sagital and coronal.
+   subject = a  string value for subject name used during recon-all
+   and fsfast pre processing analysis (recon-all and preproc-sess)
+   
+   fsfastDir = directory for fsfast, whcih contains preprocessed 
+   data with preproc-sess.
+   
+   volume_path = FMRI volume on which surfaces will be projected for 
+   visualization (string). Usually from fsfast directory.
+   
+   register_path = register.dat file produced by tkregister during
+   within subject intermodality registration (6dof in fsfast)
+   
+   slices = numpy array of n by 3 slices in 3 directions of axial
+   sagital and coronal.
    """ 
-
-   FSHome = os.environ['FREESURFER_HOME']
+   
+   FSHome = os.environ["FREESURFER_HOME"]
    response = subprocess.check_output(["{FSHome}/bin/mri_info".format{home = FSHome},
                                          "--vox2ras-tkr", volume_path],
                                          stderr=subprocess.STDOUT,
@@ -159,12 +159,10 @@ def fsfastCheck(subject, average = 'fsaverage',
        _sagitalShow(data = rhPialD, slice = slice, overlay = True,
                 surface = 'pial')
        
-   png_file = subId + '.png'
-   path = os.path.join(path, png_file) 
-   savefig(path, dpi = 50)
    plt.close()
    plt.clf()
    plt.cla()
+   return None
 
 def surface_mask_fsfast(surface, volume,
         regMatrix, invvox2ras ):
