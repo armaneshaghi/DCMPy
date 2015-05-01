@@ -2,10 +2,14 @@ import nibabel as nb
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+from matplotlib import figure
 import subprocess
 from DCMPy.pyview.mri import _axialShow, _sagitalShow, _coronalShow
-def fsfastCheck(subject, fsfastDir, volume_path,
-        register_path, slices, average = 'fsaverage'):
+def fsfastCheck(subject, fsfastDir,
+        volume_path,
+        register_path, slices, average = 'fsaverage',
+        plot_path = None,
+        web_report = False):
    """
    Quality assurance of each subject's functional
    MRI time series to the average template. Usually is run
@@ -21,7 +25,8 @@ def fsfastCheck(subject, fsfastDir, volume_path,
    routine.
    
    subject = a  string value for subject name used during recon-all
-   and fsfast pre processing analysis (recon-all and preproc-sess)
+   and fsfast pre processing analysis (recon-all and preproc-sess).
+   If web_report is on, list of strings should be provided instead.
    
    fsfastDir = directory for fsfast, whcih contains preprocessed 
    data with preproc-sess.
@@ -34,139 +39,166 @@ def fsfastCheck(subject, fsfastDir, volume_path,
    
    slices = numpy array of n by 3 slices in 3 directions of axial
    sagital and coronal.
+
+   plot_path = string, path to the directory where you want to save
+   the final figure as a png file (dpi = 50). This entry is optional.
+
+   web_report = Boolean, whether or not to create a web report. If web report is 
+   on then instead of providing one subject name, list of subjects (list of strings) 
+   should be provided.
    """ 
-   
-   FSHome = os.environ["FREESURFER_HOME"]
-   response = subprocess.check_output(["{FSHome}/bin/mri_info".format(FSHome = FSHome),
-                                         "--vox2ras-tkr", volume_path],
-                                         stderr=subprocess.STDOUT,
-                                         shell=False)
+   if web_report == True:
+       if type(subject) == 'str':
+           except ValueError:
+               print "when web_report is true, list of subjects should be provided"
+       if plot_path is None:
 
-   response = response.split()
-   vox2ras = np.zeros((4,4))
+       elif type(subject) == 'list':
+           for eachSubject in subject:
+               fsfastCheck(subject = eachSubject,
+                       fsfastDir = fsfastDir, 
+                       volume_path = volume_path,
+                       register_path = register_path,
+                       slices, average = 'fsaverage',
+                       plot_path = None,
+                       web_report = False)
 
-   for i in range(0, 4):
-       for j in range(0, 4):
-           vox2ras[i, j] = float(response[4*i+j])
-   vox2ras = np.matrix(vox2ras)
-   invvox2ras = np.linalg.inv(vox2ras)
-   reg = np.zeros((4,4))
-   #read linear transformation matrix
-   with open(register_path) as registerdat:
-       lines = registerdat.readlines()
-       lines = lines[4:8]
-       #remove extra characters such as \n
-       for number, line in enumerate(lines):
-           lines[number] = line.strip()
+   elif web_report == False:
+       FSHome = os.environ["FREESURFER_HOME"]
+       response = subprocess.check_output(["{FSHome}/bin/mri_info".format(FSHome = FSHome),
+                                             "--vox2ras-tkr", volume_path],
+                                             stderr=subprocess.STDOUT,
+                                             shell=False)
+
+       response = response.split()
+       vox2ras = np.zeros((4,4))
 
        for i in range(0, 4):
-           splitted = lines[i].split()
            for j in range(0, 4):
-               reg[i, j] = float(splitted[j])
-   #converting from numpy array to numpy matrix 
-   #for subsequent linear algebra analysis
+               vox2ras[i, j] = float(response[4*i+j])
+       vox2ras = np.matrix(vox2ras)
+       invvox2ras = np.linalg.inv(vox2ras)
+       reg = np.zeros((4,4))
+       #read linear transformation matrix
+       with open(register_path) as registerdat:
+           lines = registerdat.readlines()
+           lines = lines[4:8]
+           #remove extra characters such as \n
+           for number, line in enumerate(lines):
+               lines[number] = line.strip()
 
-   regMatrix = np.matrix(reg)
-   subjects_dir = os.environ["SUBJECTS_DIR"]
-   #subjects_dir and subject_dir are different!
-   subject_dir = '{subjects_dir}/{subject}/surf/'.format(
-           subjects_dir = subjects_dir, subject = subject)
+           for i in range(0, 4):
+               splitted = lines[i].split()
+               for j in range(0, 4):
+                   reg[i, j] = float(splitted[j])
+       #converting from numpy array to numpy matrix 
+       #for subsequent linear algebra analysis
 
-   rhPial = os.path.join(subject_dir, 'rh.pial')
-   lhPial = os.path.join(subject_dir, 'lh.pial')
-   rhWm = os.path.join(subject_dir, 'rh.white')
-   lhWm = os.path.join(subject_dir, 'lh.white')
+       regMatrix = np.matrix(reg)
+       subjects_dir = os.environ["SUBJECTS_DIR"]
+       #subjects_dir and subject_dir are different!
+       subject_dir = '{subjects_dir}/{subject}/surf/'.format(
+               subjects_dir = subjects_dir, subject = subject)
 
-   #projecting surface to volume
-   lhPialD = surface_mask_fsfast(volume_path = volume_path,
-           surface = lhPial,
-           regMatrix = regMatrix,
-           invvox2ras = invvox2ras)
+       rhPial = os.path.join(subject_dir, 'rh.pial')
+       lhPial = os.path.join(subject_dir, 'lh.pial')
+       rhWm = os.path.join(subject_dir, 'rh.white')
+       lhWm = os.path.join(subject_dir, 'lh.white')
 
-   rhPialD = surface_mask_fsfast(volume_path = volume_path,
-           surface = rhPial,
-           regMatrix = regMatrix,
-           invvox2ras = invvox2ras)
+       #projecting surface to volume
+       lhPialD = surface_mask_fsfast(volume_path = volume_path,
+               surface = lhPial,
+               regMatrix = regMatrix,
+               invvox2ras = invvox2ras)
 
-   lhWmD = surface_mask_fsfast(volume_path = volume_path,
-           surface = lhWm,
-           regMatrix = regMatrix,
-           invvox2ras = invvox2ras)
+       rhPialD = surface_mask_fsfast(volume_path = volume_path,
+               surface = rhPial,
+               regMatrix = regMatrix,
+               invvox2ras = invvox2ras)
 
-   rhWmD =  surface_mask_fsfast(volume_path = volume_path,
-           surface = rhWm,
-           regMatrix = regMatrix,
-           invvox2ras = invvox2ras)
+       lhWmD = surface_mask_fsfast(volume_path = volume_path,
+               surface = lhWm,
+               regMatrix = regMatrix,
+               invvox2ras = invvox2ras)
 
-   totSlices = slices.shape[0] + slices.shape[1]
-   rows = np.round(totSlices/2)
-   columns  = totSlices - rows
-   #getting slice numbers for each view
-   axialSlices =  slices[:, 0]
-   sagitalSlices = slices[:, 1]
-   coronalSlices = slices[:, 2]
-   
-   #plotting surface vertices on the mean volume
-   figNo = 0
-   width = columns * 20
-   height = rows * 20
-   fig = plt.figure(figsize = (width, height))
+       rhWmD =  surface_mask_fsfast(volume_path = volume_path,
+               surface = rhWm,
+               regMatrix = regMatrix,
+               invvox2ras = invvox2ras)
 
-   volume = nb.load(volume_path)
-   volumeData = volume.get_data()
-   volumeMean = np.mean(volumeData, axis = 3)
-
-   for slice in axialSlices:
-       figNo += 1
-       f =  fig.add_subplot(rows, columns, figNo)
-       fig.suptitle('%s' %(subject), fontsize=35, fontweight='bold')
-       #drawing main volume
-       _axialShow(data = volumeMean, slice = slice)
-       #drawing overlays: lh
-       _axialShow(data = lhPialD, slice = slice, overlay = True,
-               surface = 'pial')
-       _axialShow(data = lhWmD, slice = slice, overlay = True, 
-               surface = 'wm')
-       #drawing overlays: rh
-       _axialShow(data = rhPialD, slice = slice, overlay = True,
-               surface = 'pial')
-       _axialShow(data = rhWmD, slice = slice, overlay = True, 
-               surface = 'wm')
-   for slice in coronalSlices:
-       figNo += 1
-       f =  fig.add_subplot(rows, columns, figNo)
-       #drawing main volume
-       _coronalShow(data = volumeMean, slice = slice)
-       #drawing overlays: lh
-       _coronalShow(data = lhPialD, slice = slice, overlay = True,
-               surface = 'pial')
-       _coronalShow(data = lhWmD, slice = slice, overlay = True, 
-               surface = 'wm')
-       #drawing overlays: rh
-       _coronalShow(data = rhPialD, slice = slice, overlay = True,
-               surface = 'pial')
-       _coronalShow(data = rhWmD, slice = slice, overlay = True, 
-               surface = 'wm')
-
-
-   for slice in sagitalSlices:
-       figNo += 1
-       f =  fig.add_subplot(rows, columns, figNo)
-       #drawing main volume
-       _sagitalShow(data = volumeMean, slice = slice)
-       #drawing overlays: lh
-       _sagitalShow(data = lhPialD, slice = slice, overlay = True,
-                surface = 'pial')
-       _sagitalShow(data = lhWmD, slice = slice, overlay = True,
-                surface = 'wm')
-       #drawing overlays: rh
-       _sagitalShow(data = rhPialD, slice = slice, overlay = True,
-                surface = 'pial')
+       totSlices = slices.shape[0] + slices.shape[1]
+       rows = np.round(totSlices/2)
+       columns  = totSlices - rows
+       #getting slice numbers for each view
+       axialSlices =  slices[:, 0]
+       sagitalSlices = slices[:, 1]
+       coronalSlices = slices[:, 2]
        
-   #plt.close()
-   #plt.clf()
-   #plt.cla()
-   #return None
+       #plotting surface vertices on the mean volume
+       figNo = 0
+       width = columns * 20
+       height = rows * 20
+       fig = plt.figure(figsize = (width, height))
+
+       volume = nb.load(volume_path)
+       volumeData = volume.get_data()
+       volumeMean = np.mean(volumeData, axis = 3)
+
+       for slice in axialSlices:
+           figNo += 1
+           f =  fig.add_subplot(rows, columns, figNo)
+           fig.suptitle('%s' %(subject), fontsize=55, fontweight='bold')
+           #drawing main volume
+           _axialShow(data = volumeMean, slice = slice)
+           #drawing overlays: lh
+           _axialShow(data = lhPialD, slice = slice, overlay = True,
+                   surface = 'pial')
+           _axialShow(data = lhWmD, slice = slice, overlay = True, 
+                   surface = 'wm')
+           #drawing overlays: rh
+           _axialShow(data = rhPialD, slice = slice, overlay = True,
+                   surface = 'pial')
+           _axialShow(data = rhWmD, slice = slice, overlay = True, 
+                   surface = 'wm')
+       for slice in coronalSlices:
+           figNo += 1
+           f =  fig.add_subplot(rows, columns, figNo)
+           #drawing main volume
+           _coronalShow(data = volumeMean, slice = slice)
+           #drawing overlays: lh
+           _coronalShow(data = lhPialD, slice = slice, overlay = True,
+                   surface = 'pial')
+           _coronalShow(data = lhWmD, slice = slice, overlay = True, 
+                   surface = 'wm')
+           #drawing overlays: rh
+           _coronalShow(data = rhPialD, slice = slice, overlay = True,
+                   surface = 'pial')
+           _coronalShow(data = rhWmD, slice = slice, overlay = True, 
+                   surface = 'wm')
+
+
+       for slice in sagitalSlices:
+           figNo += 1
+           f =  fig.add_subplot(rows, columns, figNo)
+           #drawing main volume
+           _sagitalShow(data = volumeMean, slice = slice)
+           #drawing overlays: lh
+           _sagitalShow(data = lhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+           _sagitalShow(data = lhWmD, slice = slice, overlay = True,
+                    surface = 'wm')
+           #drawing overlays: rh
+           _sagitalShow(data = rhPialD, slice = slice, overlay = True,
+                    surface = 'pial')
+       if plot_path is not None: 
+          png_file = subject + '.png'             
+          path = os.path.join(plot_path, png_file) 
+          plt.savefig(path, dpi = 50)
+          return None
+       plt.close()
+       plt.clf()
+       plt.cla()
+       return fig 
 
 def surface_mask_fsfast(surface, volume_path,
         regMatrix, invvox2ras ):

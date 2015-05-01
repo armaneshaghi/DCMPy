@@ -286,7 +286,7 @@ class FS(object):
             
         png_file = subId + '.png'
         path = os.path.join(path, png_file) 
-        savefig(path, dpi = 50)
+        plt.savefig(path, dpi = 50)
         plt.close()
         plt.clf()
         plt.cla()
