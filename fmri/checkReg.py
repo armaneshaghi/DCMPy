@@ -3,10 +3,9 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import subprocess
-
-def fsfastCheck(subject, average = 'fsaverage',
-            fsfastDir, volume_path, register_path,
-            slices):
+from DCMPy.pyview.mri import _axialShow, _sagitalShow, _coronalShow
+def fsfastCheck(subject, fsfastDir, volume_path,
+        register_path, slices, average = 'fsaverage'):
    """
    Quality assurance of each subject's functional
    MRI time series to the average template. Usually is run
@@ -38,7 +37,7 @@ def fsfastCheck(subject, average = 'fsaverage',
    """ 
    
    FSHome = os.environ["FREESURFER_HOME"]
-   response = subprocess.check_output(["{FSHome}/bin/mri_info".format{home = FSHome},
+   response = subprocess.check_output(["{FSHome}/bin/mri_info".format(FSHome = FSHome),
                                          "--vox2ras-tkr", volume_path],
                                          stderr=subprocess.STDOUT,
                                          shell=False)
@@ -79,21 +78,25 @@ def fsfastCheck(subject, average = 'fsaverage',
    lhWm = os.path.join(subject_dir, 'lh.white')
 
    #projecting surface to volume
-   lhPialD = surface_mask_fsfast(volume = volume_path,
+   lhPialD = surface_mask_fsfast(volume_path = volume_path,
            surface = lhPial,
-           regMatrix = regMatrix)
+           regMatrix = regMatrix,
+           invvox2ras = invvox2ras)
 
-   rhPialD = surface_mask_fsfast(volume = volume_path,
+   rhPialD = surface_mask_fsfast(volume_path = volume_path,
            surface = rhPial,
-           regMatrix = regMatrix)
+           regMatrix = regMatrix,
+           invvox2ras = invvox2ras)
 
-   lhWmD = surface_mask_fsfast(volume = volume_path,
+   lhWmD = surface_mask_fsfast(volume_path = volume_path,
            surface = lhWm,
-           regMatrix = regMatrix)
+           regMatrix = regMatrix,
+           invvox2ras = invvox2ras)
 
-   rhWmD =  surface_mask_fsfast(volume = volume_path,
+   rhWmD =  surface_mask_fsfast(volume_path = volume_path,
            surface = rhWm,
-           regMatrix = regMatrix)
+           regMatrix = regMatrix,
+           invvox2ras = invvox2ras)
 
    totSlices = slices.shape[0] + slices.shape[1]
    rows = np.round(totSlices/2)
@@ -108,16 +111,17 @@ def fsfastCheck(subject, average = 'fsaverage',
    width = columns * 20
    height = rows * 20
    fig = plt.figure(figsize = (width, height))
-   #we need images in form of data from nibabel
-   volumeData = nb.load(volume_path)
-   volumeData = volumeData.get_data()
+
+   volume = nb.load(volume_path)
+   volumeData = volume.get_data()
+   volumeMean = np.mean(volumeData, axis = 3)
 
    for slice in axialSlices:
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
-       fig.suptitle('%s' %(subject_name), fontsize=35, fontweight='bold')
+       fig.suptitle('%s' %(subject), fontsize=35, fontweight='bold')
        #drawing main volume
-       _axialShow(data = orig_data, slice = slice)
+       _axialShow(data = volumeMean, slice = slice)
        #drawing overlays: lh
        _axialShow(data = lhPialD, slice = slice, overlay = True,
                surface = 'pial')
@@ -132,7 +136,7 @@ def fsfastCheck(subject, average = 'fsaverage',
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
        #drawing main volume
-       _coronalShow(data = orig_data, slice = slice)
+       _coronalShow(data = volumeMean, slice = slice)
        #drawing overlays: lh
        _coronalShow(data = lhPialD, slice = slice, overlay = True,
                surface = 'pial')
@@ -149,7 +153,7 @@ def fsfastCheck(subject, average = 'fsaverage',
        figNo += 1
        f =  fig.add_subplot(rows, columns, figNo)
        #drawing main volume
-       _sagitalShow(data = orig_data, slice = slice)
+       _sagitalShow(data = volumeMean, slice = slice)
        #drawing overlays: lh
        _sagitalShow(data = lhPialD, slice = slice, overlay = True,
                 surface = 'pial')
@@ -159,12 +163,12 @@ def fsfastCheck(subject, average = 'fsaverage',
        _sagitalShow(data = rhPialD, slice = slice, overlay = True,
                 surface = 'pial')
        
-   plt.close()
-   plt.clf()
-   plt.cla()
-   return None
+   #plt.close()
+   #plt.clf()
+   #plt.cla()
+   #return None
 
-def surface_mask_fsfast(surface, volume,
+def surface_mask_fsfast(surface, volume_path,
         regMatrix, invvox2ras ):
    """
    Returns projected surface on as a mask (binary, values of 

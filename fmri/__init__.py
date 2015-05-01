@@ -1,3 +1,3 @@
 """DCMPy fmri namespace
 """
-from .checkReg import checkReg
+from .checkReg import fsfastCheck

@@ -98,90 +98,90 @@ class FS(object):
             newVol[xR, yR, zR]  = 1
         return newVol
 
-    def _coronalShow(self, data, slice, overlay = False,
-            surface = None):
-        
-        """
-        function to plot T1 volume and pial/WM surfaces
-        data: nibabel loaded numpy array
-        slice: integer indicating number of the desired slice
-        overlay: boolean indicating whether the data is an overlay or not
-        surface: string indicating what kind of surface is overlay (wm or pial)
-
-        """
-
-        if not overlay:
-            plt.imshow(np.rot90(data[:, :, slice], k=3),
-                            cmap = plt.cm.gray ,  aspect = 'auto', 
-                            interpolation = 'nearest')
 
 
-        if overlay:
-            overlayD = np.ma.masked_array(data, data == 0)
-            if surface =='wm':
-                    plt.imshow(np.rot90(overlayD[:,:, slice], k=3),
-                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                               aspect = 'auto', 
-                               interpolation = 'nearest')
-            if surface == 'pial':
-                    plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
-                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
-                               aspect = 'auto', 
-                               interpolation = 'nearest')
-        return None
-
-    def _axialShow(self, data, slice, overlay = False,
-            surface = None):
-        """
-        similar to _coronalshow
-        """
-        if not overlay:
-            plt.imshow(np.rot90(data[:, slice, :], k=1),
-                        cmap = plt.cm.gray ,  aspect = 'auto', 
-                        interpolation = 'nearest')
-
-        if overlay: 
-            overlayD = np.ma.masked_array(data, data == 0)
-            if surface =='wm':
-                plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
-                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                               aspect = 'auto', 
-                               interpolation = 'nearest')
-
-            if surface == 'pial':
-                plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
-                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
-                               aspect = 'auto', 
-                               interpolation = 'nearest')
 
 
-        return None
-        
 
-    def _sagitalShow(self, data, slice, overlay = False,
-            surface = None):
-        """
-        similar to _coronalshow
-        """
-        if not overlay:
-            plt.imshow(np.rot90(data[slice, :, :], k=0),
-                            cmap = plt.cm.gray ,  aspect = 'auto', 
-                            interpolation = 'nearest')
-        if overlay: 
-            overlayD = np.ma.masked_array(data, data == 0)                      
-            if surface =='wm':
-                plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
-                               cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
-                               aspect = 'auto', 
-                               interpolation = 'nearest')
 
-            if surface == 'pial':
-                plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
-                               cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
-                               aspect = 'auto',                                 
-                               interpolation = 'nearest')                       
-                 
-        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def superimpose(self):
         """
@@ -291,6 +291,91 @@ class FS(object):
         plt.clf()
         plt.cla()
         return self
+
+def _coronalShow(data, slice, overlay = False,
+        surface = None):
+    
+    """
+    function to plot T1 volume and pial/WM surfaces
+    data: nibabel loaded numpy array
+    slice: integer indicating number of the desired slice
+    overlay: boolean indicating whether the data is an overlay or not
+    surface: string indicating what kind of surface is overlay (wm or pial)
+
+    """
+
+    if not overlay:
+        plt.imshow(np.rot90(data[:, :, slice], k=3),
+                        cmap = plt.cm.gray ,  aspect = 'auto', 
+                        interpolation = 'nearest')
+
+
+    if overlay:
+        overlayD = np.ma.masked_array(data, data == 0)
+        if surface =='wm':
+                plt.imshow(np.rot90(overlayD[:,:, slice], k=3),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+        if surface == 'pial':
+                plt.imshow(np.rot90(overlayD[:, :, slice], k=3),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+    return None
+
+def _axialShow(data, slice, overlay = False,
+        surface = None):
+    """
+    similar to _coronalshow
+    """
+    if not overlay:
+        plt.imshow(np.rot90(data[:, slice, :], k=1),
+                    cmap = plt.cm.gray ,  aspect = 'auto', 
+                    interpolation = 'nearest')
+
+    if overlay: 
+        overlayD = np.ma.masked_array(data, data == 0)
+        if surface =='wm':
+            plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+        if surface == 'pial':
+            plt.imshow(np.rot90(overlayD[:, slice, :], k=1),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+
+    return None
+    
+
+def _sagitalShow(data, slice, overlay = False,
+        surface = None):
+    """
+    similar to _coronalshow
+    """
+    if not overlay:
+        plt.imshow(np.rot90(data[slice, :, :], k=0),
+                        cmap = plt.cm.gray ,  aspect = 'auto', 
+                        interpolation = 'nearest')
+    if overlay: 
+        overlayD = np.ma.masked_array(data, data == 0)                      
+        if surface =='wm':
+            plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
+                           cmap = plt.cm.Reds, vmax = 1.2, vmin = 0,
+                           aspect = 'auto', 
+                           interpolation = 'nearest')
+
+        if surface == 'pial':
+            plt.imshow(np.rot90(overlayD[slice,:, :], k=0),
+                           cmap = plt.cm.hot, vmax = 1.2, vmin = 0,         
+                           aspect = 'auto',                                 
+                           interpolation = 'nearest')                       
+             
+    return None
 
 #work in progress
 '''
